@@ -123,17 +123,20 @@ Or use the **AI Configuration Assistant** in the control panel to configure via 
 
 ## Features
 
-### Milestone 1: Hello BBS ✅
-- [x] WebSocket server
-- [x] Web terminal client with ANSI rendering
-- [x] Static welcome screen
-- [x] Basic menu navigation
+### Milestone 1: Hello BBS ✅ COMPLETE
+- [x] WebSocket server with Fastify
+- [x] Web terminal client with xterm.js and ANSI rendering
+- [x] ANSI template system with variable substitution
+- [x] Welcome screen with retro BBS aesthetics
+- [x] Connection abstraction layer (IConnection, WebSocketConnection, ConnectionManager)
+- [x] Property-based tests with fast-check
 
-### Milestone 2: User System (In Progress)
-- [ ] SQLite database
+### Milestone 2: User System (Next)
+- [ ] SQLite database setup
 - [ ] User registration & login
-- [ ] Session management
+- [ ] Session management with timeouts
 - [ ] Password hashing with bcrypt
+- [ ] Rate limiting for login attempts
 
 ### Milestone 3: AI Integration (Planned)
 - [ ] AI SysOp agent

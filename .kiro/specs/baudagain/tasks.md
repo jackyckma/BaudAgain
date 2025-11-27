@@ -44,19 +44,19 @@
   - **Validates: Requirements 13.1**
 
 - [ ] 4. Create static ANSI welcome screen
-- [-] 4.1 Implement ANSI template system
+- [x] 4.1 Implement ANSI template system
   - Create ANSIRenderer class with template loading
   - Implement variable substitution ({{variable}} pattern)
   - Create welcome.ans template file
   - _Requirements: 1.2, 13.4_
 
-- [ ] 4.2 Send welcome screen on connection
+- [x] 4.2 Send welcome screen on connection
   - Integrate ANSIRenderer with connection handler
   - Send welcome screen immediately after connection
   - Add basic variables (bbs_name, node, date)
   - _Requirements: 1.2_
 
-- [ ] 4.3 Write property test for welcome screen delivery
+- [x] 4.3 Write property test for welcome screen delivery
   - **Property 1: Welcome screen delivery on connection**
   - **Validates: Requirements 1.2**
 
