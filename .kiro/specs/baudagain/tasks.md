@@ -27,24 +27,24 @@
   - **Validates: Requirements 12.1**
 
 - [ ] 3. Create web-based terminal client
-- [-] 3.1 Set up xterm.js terminal
+- [x] 3.1 Set up xterm.js terminal
   - Create HTML page with xterm.js integration
   - Implement WebSocket client connection
   - Handle bidirectional communication (send input, receive output)
   - _Requirements: 1.1, 1.3, 1.4_
 
-- [ ] 3.2 Implement ANSI rendering
+- [x] 3.2 Implement ANSI rendering
   - Configure xterm.js for ANSI escape code support
   - Add CP437 box-drawing character support
   - Test color rendering (standard and bright variants)
   - _Requirements: 13.1, 13.2, 13.3_
 
-- [ ] 3.3 Write property test for ANSI rendering
+- [x] 3.3 Write property test for ANSI rendering
   - **Property 50: ANSI escape code interpretation**
   - **Validates: Requirements 13.1**
 
 - [ ] 4. Create static ANSI welcome screen
-- [ ] 4.1 Implement ANSI template system
+- [-] 4.1 Implement ANSI template system
   - Create ANSIRenderer class with template loading
   - Implement variable substitution ({{variable}} pattern)
   - Create welcome.ans template file

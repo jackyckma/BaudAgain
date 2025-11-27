@@ -3,6 +3,7 @@ import websocket from '@fastify/websocket';
 import cors from '@fastify/cors';
 import { WebSocketConnection } from './connection/WebSocketConnection.js';
 import { ConnectionManager } from './connection/ConnectionManager.js';
+import { ANSIRenderer } from './ansi/ANSIRenderer.js';
 
 const server = Fastify({
   logger: {
@@ -17,8 +18,9 @@ const server = Fastify({
   },
 });
 
-// Initialize connection manager
+// Initialize connection manager and ANSI renderer
 const connectionManager = new ConnectionManager(server.log);
+const ansiRenderer = new ANSIRenderer();
 
 // Register plugins
 await server.register(cors, {
@@ -29,20 +31,27 @@ await server.register(websocket);
 
 // WebSocket route for BBS terminal connections
 server.register(async function (fastify) {
-  fastify.get('/ws', { websocket: true }, (socket, req) => {
+  fastify.get('/ws', { websocket: true }, async (socket, req) => {
     // Wrap WebSocket in our connection abstraction
     const connection = new WebSocketConnection(socket);
     connectionManager.addConnection(connection);
 
     fastify.log.info({ connectionId: connection.id }, 'New connection established');
 
-    // Send welcome message
-    connection.send('Welcome to BaudAgain BBS!\r\n').catch(err => 
-      fastify.log.error({ err }, 'Error sending welcome message')
-    );
-    connection.send('Type something: ').catch(err => 
-      fastify.log.error({ err }, 'Error sending prompt')
-    );
+    // Send ANSI welcome screen
+    try {
+      const welcomeScreen = ansiRenderer.render('welcome.ans', {
+        node: '1',
+        max_nodes: '4',
+        caller_count: connectionManager.getConnectionCount().toString(),
+      });
+      await connection.send(welcomeScreen);
+      await connection.send('\r\nEnter your handle, or type NEW to register: ');
+    } catch (err) {
+      fastify.log.error({ err }, 'Error sending welcome screen');
+      await connection.send('Welcome to BaudAgain BBS!\r\n');
+      await connection.send('Enter your handle, or type NEW to register: ');
+    }
 
     // Handle incoming data
     connection.onData((input) => {
