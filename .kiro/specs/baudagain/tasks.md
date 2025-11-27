@@ -22,12 +22,12 @@
   - Create ConnectionManager to track active connections
   - _Requirements: 12.1, 12.2_
 
-- [-] 2.3 Write property test for connection abstraction
+- [x] 2.3 Write property test for connection abstraction
   - **Property 46: Connection abstraction usage**
   - **Validates: Requirements 12.1**
 
 - [ ] 3. Create web-based terminal client
-- [ ] 3.1 Set up xterm.js terminal
+- [-] 3.1 Set up xterm.js terminal
   - Create HTML page with xterm.js integration
   - Implement WebSocket client connection
   - Handle bidirectional communication (send input, receive output)
