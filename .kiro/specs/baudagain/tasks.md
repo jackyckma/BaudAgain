@@ -16,13 +16,13 @@
   - Add connection logging
   - _Requirements: 1.1, 1.3_
 
-- [-] 2.2 Implement connection abstraction layer
+- [x] 2.2 Implement connection abstraction layer
   - Create IConnection interface
   - Implement WebSocketConnection class
   - Create ConnectionManager to track active connections
   - _Requirements: 12.1, 12.2_
 
-- [ ] 2.3 Write property test for connection abstraction
+- [-] 2.3 Write property test for connection abstraction
   - **Property 46: Connection abstraction usage**
   - **Validates: Requirements 12.1**
 
