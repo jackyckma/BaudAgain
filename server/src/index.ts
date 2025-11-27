@@ -4,6 +4,8 @@ import cors from '@fastify/cors';
 import { WebSocketConnection } from './connection/WebSocketConnection.js';
 import { ConnectionManager } from './connection/ConnectionManager.js';
 import { ANSIRenderer } from './ansi/ANSIRenderer.js';
+import { BBSDatabase } from './db/Database.js';
+import { UserRepository } from './db/repositories/UserRepository.js';
 
 const server = Fastify({
   logger: {
@@ -17,6 +19,10 @@ const server = Fastify({
     },
   },
 });
+
+// Initialize database
+const database = new BBSDatabase('data/bbs.db', server.log);
+const userRepository = new UserRepository(database);
 
 // Initialize connection manager and ANSI renderer
 const connectionManager = new ConnectionManager(server.log);
@@ -91,6 +97,7 @@ const HOST = '0.0.0.0';
 const shutdown = async () => {
   server.log.info('Shutting down gracefully...');
   await connectionManager.closeAll();
+  database.close();
   await server.close();
   process.exit(0);
 };

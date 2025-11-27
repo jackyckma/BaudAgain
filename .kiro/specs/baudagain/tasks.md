@@ -87,7 +87,7 @@
 ## Milestone 2: User System (Persistence & Authentication)
 
 - [ ] 7. Set up SQLite database
-- [ ] 7.1 Create database schema
+- [-] 7.1 Create database schema
   - Implement schema.sql with users, message_bases, messages, door_sessions, activity_log tables
   - Create Database class for connection management
   - Implement database initialization on server start
