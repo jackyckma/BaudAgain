@@ -2,7 +2,7 @@
 
 ## Milestone 1: Hello BBS (Runnable Foundation)
 
-- [-] 1. Set up project structure and dependencies
+- [x] 1. Set up project structure and dependencies
   - Create monorepo structure with server, terminal client, and control panel
   - Initialize package.json files with TypeScript, Fastify, and WebSocket dependencies
   - Set up build configuration with Vite
@@ -10,7 +10,7 @@
   - _Requirements: All_
 
 - [ ] 2. Implement basic WebSocket server
-- [ ] 2.1 Create WebSocket connection handler
+- [-] 2.1 Create WebSocket connection handler
   - Implement WebSocket server using Fastify WebSocket plugin
   - Create connection acceptance and basic echo functionality
   - Add connection logging
