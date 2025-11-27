@@ -1,12 +1,14 @@
 import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 export class ANSIRenderer {
   private templates: Map<string, string> = new Map();
   private templateDir: string;
 
   constructor(templateDir: string = 'data/ansi') {
-    this.templateDir = templateDir;
+    // Resolve to absolute path from workspace root (one level up from server dir)
+    const workspaceRoot = resolve(process.cwd(), '..');
+    this.templateDir = resolve(workspaceRoot, templateDir);
   }
 
   /**
