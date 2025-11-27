@@ -1,0 +1,36 @@
+{
+  "name": "baudagain",
+  "version": "0.1.0",
+  "description": "AI-Enhanced Bulletin Board System - Resurrection of the dial-up era with modern AI",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client/terminal",
+    "client/control-panel",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:server": "npm run dev -w server",
+    "dev:terminal": "npm run dev -w client/terminal",
+    "dev:panel": "npm run dev -w client/control-panel",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "clean": "rm -rf node_modules server/node_modules client/*/node_modules packages/*/node_modules"
+  },
+  "keywords": [
+    "bbs",
+    "bulletin-board",
+    "ai",
+    "websocket",
+    "ansi",
+    "retro",
+    "hackathon"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
