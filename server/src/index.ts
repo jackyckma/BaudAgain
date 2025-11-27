@@ -6,6 +6,7 @@ import { ConnectionManager } from './connection/ConnectionManager.js';
 import { ANSIRenderer } from './ansi/ANSIRenderer.js';
 import { BBSDatabase } from './db/Database.js';
 import { UserRepository } from './db/repositories/UserRepository.js';
+import { SessionManager } from './session/SessionManager.js';
 
 const server = Fastify({
   logger: {
@@ -24,8 +25,9 @@ const server = Fastify({
 const database = new BBSDatabase('data/bbs.db', server.log);
 const userRepository = new UserRepository(database);
 
-// Initialize connection manager and ANSI renderer
+// Initialize managers and renderers
 const connectionManager = new ConnectionManager(server.log);
+const sessionManager = new SessionManager(server.log);
 const ansiRenderer = new ANSIRenderer();
 
 // Register plugins
@@ -42,7 +44,13 @@ server.register(async function (fastify) {
     const connection = new WebSocketConnection(socket);
     connectionManager.addConnection(connection);
 
-    fastify.log.info({ connectionId: connection.id }, 'New connection established');
+    // Create session for this connection
+    const session = sessionManager.createSession(connection.id);
+
+    fastify.log.info(
+      { connectionId: connection.id, sessionId: session.id },
+      'New connection established'
+    );
 
     // Send ANSI welcome screen
     try {
@@ -62,7 +70,14 @@ server.register(async function (fastify) {
     // Handle incoming data
     connection.onData((input) => {
       const trimmedInput = input.trim();
-      fastify.log.info({ connectionId: connection.id, input: trimmedInput }, 'Received input');
+      
+      // Update session activity
+      sessionManager.touchSession(session.id);
+      
+      fastify.log.info(
+        { connectionId: connection.id, sessionId: session.id, input: trimmedInput },
+        'Received input'
+      );
       
       // Echo back for now
       connection.send(`You typed: ${trimmedInput}\r\n`).catch(err => 
@@ -71,6 +86,11 @@ server.register(async function (fastify) {
       connection.send('Type something: ').catch(err => 
         fastify.log.error({ err }, 'Error sending prompt')
       );
+    });
+
+    // Handle connection close
+    connection.onClose(() => {
+      sessionManager.removeSession(session.id);
     });
 
     // Handle errors
@@ -85,7 +105,8 @@ server.get('/health', async () => {
   return { 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    connections: connectionManager.getConnectionCount()
+    connections: connectionManager.getConnectionCount(),
+    sessions: sessionManager.getSessionCount()
   };
 });
 
@@ -96,6 +117,7 @@ const HOST = '0.0.0.0';
 // Graceful shutdown
 const shutdown = async () => {
   server.log.info('Shutting down gracefully...');
+  sessionManager.destroy();
   await connectionManager.closeAll();
   database.close();
   await server.close();

@@ -103,7 +103,7 @@
   - **Validates: Requirements 9.1**
 
 - [ ] 8. Implement session management
-- [ ] 8.1 Create Session and SessionManager
+- [-] 8.1 Create Session and SessionManager
   - Implement Session interface with state tracking
   - Create SessionManager to manage session lifecycle
   - Link sessions to connections
