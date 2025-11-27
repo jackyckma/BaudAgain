@@ -10,13 +10,13 @@
   - _Requirements: All_
 
 - [ ] 2. Implement basic WebSocket server
-- [-] 2.1 Create WebSocket connection handler
+- [x] 2.1 Create WebSocket connection handler
   - Implement WebSocket server using Fastify WebSocket plugin
   - Create connection acceptance and basic echo functionality
   - Add connection logging
   - _Requirements: 1.1, 1.3_
 
-- [ ] 2.2 Implement connection abstraction layer
+- [-] 2.2 Implement connection abstraction layer
   - Create IConnection interface
   - Implement WebSocketConnection class
   - Create ConnectionManager to track active connections
