@@ -23,6 +23,7 @@ import { AIProviderFactory, AIService, AISysOp } from './ai/index.js';
 import { getConfigLoader } from './config/index.js';
 import type { WelcomeScreenContent, PromptContent } from '@baudagain/shared';
 import { ContentType } from '@baudagain/shared';
+import { registerAPIRoutes } from './api/routes.js';
 
 const server = Fastify({
   logger: {
@@ -150,6 +151,9 @@ server.register(async function (fastify) {
     });
   });
 });
+
+// Register REST API routes for control panel
+await registerAPIRoutes(server, userRepository, sessionManager);
 
 // Health check endpoint
 server.get('/health', async () => {

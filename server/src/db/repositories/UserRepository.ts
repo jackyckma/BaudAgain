@@ -139,7 +139,7 @@ export class UserRepository {
    * Get all users
    */
   findAll(): User[] {
-    const rows = this.db.all<any>('SELECT * FROM users ORDER BY created_at DESC');
+    const rows = this.db.all<any>('SELECT * FROM users ORDER BY created_at DESC', []);
     return rows.map(row => this.mapRowToUser(row));
   }
 

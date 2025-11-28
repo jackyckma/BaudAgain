@@ -296,7 +296,7 @@
   - Create basic layout with navigation
   - _Requirements: 8.1_
 
-- [ ] 15.2 Implement REST API for control panel
+- [x] 15.2 Implement REST API for control panel
   - Create API endpoints for dashboard, users, message bases
   - Implement authentication for SysOp access
   - Add CORS configuration for local development
