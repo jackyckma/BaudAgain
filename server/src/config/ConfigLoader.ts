@@ -79,7 +79,11 @@ export class ConfigLoader {
 
   constructor(configPath: string = 'config.yaml') {
     // Resolve path relative to project root
-    this.configPath = path.resolve(process.cwd(), configPath);
+    // If running from server directory, go up one level
+    const projectRoot = process.cwd().endsWith('/server') 
+      ? path.resolve(process.cwd(), '..')
+      : process.cwd();
+    this.configPath = path.resolve(projectRoot, configPath);
   }
 
   /**

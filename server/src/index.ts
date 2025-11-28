@@ -1,3 +1,11 @@
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load .env from project root
+const projectRoot = process.cwd().endsWith('/server') 
+  ? path.resolve(process.cwd(), '..')
+  : process.cwd();
+dotenv.config({ path: path.join(projectRoot, '.env') });
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import cors from '@fastify/cors';
@@ -60,7 +68,8 @@ try {
     server.log.info('AI SysOp disabled in configuration');
   }
 } catch (error) {
-  server.log.error({ error }, 'Failed to initialize AI SysOp - continuing without AI features');
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  server.log.error({ error: errorMessage }, 'Failed to initialize AI SysOp - continuing without AI features');
 }
 
 // Initialize BBS Core and register handlers
