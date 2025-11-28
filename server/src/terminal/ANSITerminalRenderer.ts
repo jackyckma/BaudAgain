@@ -8,6 +8,7 @@ import type {
   PromptContent,
   ErrorContent,
   RawANSIContent,
+  EchoControlContent,
 } from '@baudagain/shared';
 
 /**
@@ -58,6 +59,8 @@ export class ANSITerminalRenderer implements TerminalRenderer {
         return this.renderError(content);
       case 'raw_ansi':
         return this.renderRawANSI(content);
+      case 'echo_control':
+        return this.renderEchoControl(content);
       default:
         return '';
     }
@@ -186,6 +189,12 @@ export class ANSITerminalRenderer implements TerminalRenderer {
 
   private renderRawANSI(content: RawANSIContent): string {
     return content.ansi;
+  }
+
+  private renderEchoControl(content: EchoControlContent): string {
+    // Send special marker that client can detect
+    // Format: \x1b]8001;{enabled}\x07
+    return `\x1b]8001;${content.enabled ? '1' : '0'}\x07`;
   }
 
   /**

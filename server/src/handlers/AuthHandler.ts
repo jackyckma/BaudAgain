@@ -1,7 +1,7 @@
 import type { CommandHandler } from '../core/CommandHandler.js';
-import type { Session, SessionState, Menu } from '@baudagain/shared';
+import type { Session, SessionState } from '@baudagain/shared';
 import type { UserRepository } from '../db/repositories/UserRepository.js';
-import type { TerminalRenderer, MessageContent, PromptContent, ErrorContent, MenuContent } from '@baudagain/shared';
+import type { TerminalRenderer, MessageContent, PromptContent, ErrorContent, MenuContent, RawANSIContent, EchoControlContent } from '@baudagain/shared';
 import { ContentType } from '@baudagain/shared';
 import type { SessionManager } from '../session/SessionManager.js';
 import bcrypt from 'bcrypt';
@@ -94,12 +94,18 @@ export class AuthHandler implements CommandHandler {
       },
     });
 
+    // Disable echo for password input
+    const echoOff: EchoControlContent = {
+      type: ContentType.ECHO_CONTROL,
+      enabled: false,
+    };
+
     const prompt: PromptContent = {
       type: ContentType.PROMPT,
       text: 'Password: ',
     };
 
-    return this.renderer.render(prompt);
+    return this.renderer.render(echoOff) + this.renderer.render(prompt);
   }
 
   /**
@@ -163,11 +169,17 @@ export class AuthHandler implements CommandHandler {
         },
       });
 
+      // Disable echo for password input
+      const echoOff: EchoControlContent = {
+        type: ContentType.ECHO_CONTROL,
+        enabled: false,
+      };
+
       const prompt: PromptContent = {
         type: ContentType.PROMPT,
         text: 'Choose a password (min 6 characters): ',
       };
-      return this.renderer.render(prompt);
+      return this.renderer.render(echoOff) + this.renderer.render(prompt);
     }
 
     if (step === 'password') {
@@ -177,11 +189,18 @@ export class AuthHandler implements CommandHandler {
           type: ContentType.ERROR,
           message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
         };
+        
+        // Keep echo disabled for retry
+        const echoOff: EchoControlContent = {
+          type: ContentType.ECHO_CONTROL,
+          enabled: false,
+        };
+        
         const prompt: PromptContent = {
           type: ContentType.PROMPT,
           text: 'Choose a password (min 6 characters): ',
         };
-        return this.renderer.render(error) + this.renderer.render(prompt);
+        return this.renderer.render(error) + this.renderer.render(echoOff) + this.renderer.render(prompt);
       }
 
       // Create user
@@ -203,6 +222,12 @@ export class AuthHandler implements CommandHandler {
         },
       });
 
+      // Re-enable echo after password input
+      const echoOn: EchoControlContent = {
+        type: ContentType.ECHO_CONTROL,
+        enabled: true,
+      };
+
       // Update session to authenticated state and set current menu to main
       this.sessionManager.updateSession(session.id, {
         state: 'authenticated' as SessionState,
@@ -213,23 +238,35 @@ export class AuthHandler implements CommandHandler {
       });
 
       // Generate AI welcome message if available
-      let welcomeText = `\r\nWelcome to BaudAgain BBS, ${user.handle}!\r\nYou are now logged in.\r\n\r\n`;
+      let welcomeOutput = '';
       
       if (this.aiSysOp) {
         try {
           const aiWelcome = await this.aiSysOp.generateWelcome(user.handle);
-          welcomeText = `\r\n${aiWelcome}\r\n`;
+          // AI messages already contain ANSI codes, use raw ANSI content
+          const aiContent: RawANSIContent = {
+            type: ContentType.RAW_ANSI,
+            ansi: `\r\n${aiWelcome}\r\n`,
+          };
+          welcomeOutput = this.renderer.render(aiContent);
         } catch (error) {
           // Fall back to default message if AI fails
           console.error('AI SysOp welcome failed:', error);
+          const fallback: MessageContent = {
+            type: ContentType.MESSAGE,
+            text: `\r\nWelcome to BaudAgain BBS, ${user.handle}!\r\nYou are now logged in.\r\n\r\n`,
+            style: 'success',
+          };
+          welcomeOutput = this.renderer.render(fallback);
         }
+      } else {
+        const fallback: MessageContent = {
+          type: ContentType.MESSAGE,
+          text: `\r\nWelcome to BaudAgain BBS, ${user.handle}!\r\nYou are now logged in.\r\n\r\n`,
+          style: 'success',
+        };
+        welcomeOutput = this.renderer.render(fallback);
       }
-
-      const success: MessageContent = {
-        type: ContentType.MESSAGE,
-        text: welcomeText,
-        style: 'success',
-      };
 
       // Show main menu immediately after registration
       const menuContent: MenuContent = {
@@ -244,7 +281,7 @@ export class AuthHandler implements CommandHandler {
         ],
       };
 
-      return this.renderer.render(success) + this.renderer.render(menuContent) + '\r\nCommand: ';
+      return this.renderer.render(echoOn) + welcomeOutput + this.renderer.render(menuContent) + '\r\nCommand: ';
     }
 
     return 'Registration error.\r\n';
@@ -276,6 +313,12 @@ export class AuthHandler implements CommandHandler {
       // Successful login
       await this.userRepository.updateLastLogin(user.id);
 
+      // Re-enable echo after password input
+      const echoOn: EchoControlContent = {
+        type: ContentType.ECHO_CONTROL,
+        enabled: true,
+      };
+
       // Update session to authenticated state and set current menu to main
       this.sessionManager.updateSession(session.id, {
         state: 'authenticated' as SessionState,
@@ -286,28 +329,47 @@ export class AuthHandler implements CommandHandler {
       });
 
       // Generate AI greeting if available
-      let greetingText = `\r\nWelcome back, ${user.handle}!\r\n`;
-      if (user.lastLogin) {
-        greetingText += `Last login: ${user.lastLogin.toLocaleString()}\r\n\r\n`;
-      } else {
-        greetingText += `This is your first login!\r\n\r\n`;
-      }
+      let greetingOutput = '';
       
       if (this.aiSysOp) {
         try {
           const aiGreeting = await this.aiSysOp.generateGreeting(user.handle, user.lastLogin);
-          greetingText = `\r\n${aiGreeting}\r\n`;
+          // AI messages already contain ANSI codes, use raw ANSI content
+          const aiContent: RawANSIContent = {
+            type: ContentType.RAW_ANSI,
+            ansi: `\r\n${aiGreeting}\r\n`,
+          };
+          greetingOutput = this.renderer.render(aiContent);
         } catch (error) {
           // Fall back to default message if AI fails
           console.error('AI SysOp greeting failed:', error);
+          let greetingText = `\r\nWelcome back, ${user.handle}!\r\n`;
+          if (user.lastLogin) {
+            greetingText += `Last login: ${user.lastLogin.toLocaleString()}\r\n\r\n`;
+          } else {
+            greetingText += `This is your first login!\r\n\r\n`;
+          }
+          const fallback: MessageContent = {
+            type: ContentType.MESSAGE,
+            text: greetingText,
+            style: 'success',
+          };
+          greetingOutput = this.renderer.render(fallback);
         }
+      } else {
+        let greetingText = `\r\nWelcome back, ${user.handle}!\r\n`;
+        if (user.lastLogin) {
+          greetingText += `Last login: ${user.lastLogin.toLocaleString()}\r\n\r\n`;
+        } else {
+          greetingText += `This is your first login!\r\n\r\n`;
+        }
+        const fallback: MessageContent = {
+          type: ContentType.MESSAGE,
+          text: greetingText,
+          style: 'success',
+        };
+        greetingOutput = this.renderer.render(fallback);
       }
-      
-      const success: MessageContent = {
-        type: ContentType.MESSAGE,
-        text: greetingText,
-        style: 'success',
-      };
 
       // Show main menu immediately after login
       const menuContent: MenuContent = {
@@ -322,7 +384,7 @@ export class AuthHandler implements CommandHandler {
         ],
       };
 
-      return this.renderer.render(success) + this.renderer.render(menuContent) + '\r\nCommand: ';
+      return this.renderer.render(echoOn) + greetingOutput + this.renderer.render(menuContent) + '\r\nCommand: ';
     }
 
     return 'Login error.\r\n';
@@ -353,12 +415,19 @@ export class AuthHandler implements CommandHandler {
       type: ContentType.ERROR,
       message: `${errorMessage} (Attempt ${attempts}/${MAX_LOGIN_ATTEMPTS})`,
     };
+    
+    // Keep echo disabled for retry
+    const echoOff: EchoControlContent = {
+      type: ContentType.ECHO_CONTROL,
+      enabled: false,
+    };
+    
     const prompt: PromptContent = {
       type: ContentType.PROMPT,
       text: 'Password: ',
     };
 
-    return this.renderer.render(error) + this.renderer.render(prompt);
+    return this.renderer.render(error) + this.renderer.render(echoOff) + this.renderer.render(prompt);
   }
 
   /**

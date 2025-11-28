@@ -1,7 +1,7 @@
 import type { CommandHandler } from '../core/CommandHandler.js';
 import type { Session, SessionState, Menu, MenuOption } from '@baudagain/shared';
 import type { TerminalRenderer } from '@baudagain/shared';
-import type { MenuContent } from '@baudagain/shared';
+import type { MenuContent, RawANSIContent } from '@baudagain/shared';
 import { ContentType } from '@baudagain/shared';
 
 /**
@@ -222,9 +222,15 @@ export class MenuHandler implements CommandHandler {
       const thinking = '\r\n\x1b[36mThe SysOp is responding...\x1b[0m\r\n\r\n';
       
       // Get AI response (with 5 second timeout as per requirements)
-      const response = await this.aiSysOp.respondToPage(handle, question);
+      const aiResponse = await this.aiSysOp.respondToPage(handle, question);
       
-      return thinking + response + '\r\n' + this.displayMenu('main');
+      // AI messages already contain ANSI codes, use raw ANSI content
+      const aiContent: RawANSIContent = {
+        type: ContentType.RAW_ANSI,
+        ansi: aiResponse,
+      };
+      
+      return thinking + this.renderer.render(aiContent) + '\r\n' + this.displayMenu('main');
     } catch (error) {
       console.error('Page SysOp error:', error);
       return '\r\n\x1b[31mThe SysOp is temporarily unavailable. Please try again later.\x1b[0m\r\n\r\n' +

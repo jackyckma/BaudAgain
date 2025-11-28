@@ -54,6 +54,7 @@ window.addEventListener('resize', () => {
 const WS_URL = 'ws://localhost:8080/ws';
 let ws: WebSocket | null = null;
 let inputBuffer = '';
+let echoEnabled = true; // Track whether to echo input
 
 function connect() {
   terminal.writeln('Connecting to BaudAgain BBS...\r\n');
@@ -65,7 +66,20 @@ function connect() {
   };
 
   ws.onmessage = (event) => {
-    terminal.write(event.data);
+    const data = event.data;
+    
+    // Check for echo control sequence: \x1b]8001;{0|1}\x07
+    const echoControlMatch = data.match(/\x1b\]8001;([01])\x07/);
+    if (echoControlMatch) {
+      echoEnabled = echoControlMatch[1] === '1';
+      // Remove the control sequence and write the rest
+      const cleanData = data.replace(/\x1b\]8001;[01]\x07/g, '');
+      if (cleanData) {
+        terminal.write(cleanData);
+      }
+    } else {
+      terminal.write(data);
+    }
   };
 
   ws.onerror = (error) => {
@@ -95,7 +109,10 @@ terminal.onData((data) => {
     // Backspace
     if (inputBuffer.length > 0) {
       inputBuffer = inputBuffer.slice(0, -1);
-      terminal.write('\b \b');
+      // Only show backspace if echo is enabled
+      if (echoEnabled) {
+        terminal.write('\b \b');
+      }
     }
   } else if (data === '\x03') {
     // Ctrl+C
@@ -104,7 +121,10 @@ terminal.onData((data) => {
   } else {
     // Regular character
     inputBuffer += data;
-    terminal.write(data);
+    // Only echo if echo is enabled (for password masking)
+    if (echoEnabled) {
+      terminal.write(data);
+    }
   }
 });
 

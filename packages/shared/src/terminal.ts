@@ -15,6 +15,7 @@ export enum ContentType {
   PROMPT = 'prompt',
   ERROR = 'error',
   RAW_ANSI = 'raw_ansi',
+  ECHO_CONTROL = 'echo_control',
 }
 
 /**
@@ -67,6 +68,7 @@ export interface MessageContent extends TerminalContent {
 export interface PromptContent extends TerminalContent {
   type: ContentType.PROMPT;
   text: string;
+  echoInput?: boolean; // If false, input should be masked (for passwords)
 }
 
 /**
@@ -86,6 +88,14 @@ export interface RawANSIContent extends TerminalContent {
 }
 
 /**
+ * Echo control content (for password masking)
+ */
+export interface EchoControlContent extends TerminalContent {
+  type: ContentType.ECHO_CONTROL;
+  enabled: boolean;
+}
+
+/**
  * Union type of all content types
  */
 export type AnyTerminalContent =
@@ -94,7 +104,8 @@ export type AnyTerminalContent =
   | MessageContent
   | PromptContent
   | ErrorContent
-  | RawANSIContent;
+  | RawANSIContent
+  | EchoControlContent;
 
 /**
  * Terminal renderer interface
