@@ -727,12 +727,15 @@ baudagain/
 │   │   │   └── SessionManager.ts
 │   │   ├── core/
 │   │   │   ├── BBSCore.ts
-│   │   │   ├── CommandHandler.ts
-│   │   │   └── handlers/
-│   │   │       ├── AuthHandler.ts
-│   │   │       ├── MenuHandler.ts
-│   │   │       ├── MessageHandler.ts
-│   │   │       └── DoorHandler.ts
+│   │   │   └── CommandHandler.ts
+│   │   ├── handlers/
+│   │   │   ├── AuthHandler.ts
+│   │   │   ├── MenuHandler.ts
+│   │   │   ├── MessageHandler.ts
+│   │   │   └── DoorHandler.ts
+│   │   ├── terminal/
+│   │   │   ├── WebTerminalRenderer.ts
+│   │   │   └── ANSITerminalRenderer.ts
 │   │   ├── ai/
 │   │   │   ├── AIProvider.ts
 │   │   │   ├── AnthropicProvider.ts
@@ -752,6 +755,14 @@ baudagain/
 │   │   └── api/
 │   │       └── routes.ts
 │   └── package.json
+├── packages/
+│   └── shared/
+│       ├── src/
+│       │   ├── types.ts
+│       │   ├── terminal.ts
+│       │   ├── constants.ts
+│       │   └── index.ts
+│       └── package.json
 ├── client/
 │   ├── terminal/
 │   │   ├── src/

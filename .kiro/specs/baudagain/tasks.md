@@ -167,14 +167,14 @@
   - **Validates: Requirements 15.5**
 
 - [ ] 10. Implement user login
-- [ ] 10.1 Add login flow to authentication handler
+- [x] 10.1 Add login flow to authentication handler
   - Prompt for handle and password
   - Verify credentials against database
   - Display last login date and new message count
   - Update session with user information
   - _Requirements: 2.5_
 
-- [ ] 10.2 Add login attempt rate limiting
+- [x] 10.2 Add login attempt rate limiting
   - Track failed login attempts per session
   - Limit to 5 attempts per session
   - Disconnect after exceeding limit
@@ -193,12 +193,12 @@
   - **Validates: Requirements 15.1**
 
 - [ ] 11. Update menu system for authenticated users
-- [ ] 11.1 Show main menu after successful login
+- [x] 11.1 Show main menu after successful login
   - Display personalized main menu with user info
   - Show available options based on access level
   - _Requirements: 3.1_
 
-- [ ] 11.2 Add submenu navigation
+- [x] 11.2 Add submenu navigation
   - Implement return to main menu from submenus
   - Track current menu location in session
   - _Requirements: 3.5_
@@ -211,7 +211,7 @@
   - **Property 12: Submenu return navigation**
   - **Validates: Requirements 3.5**
 
-- [ ] 12. Checkpoint - Verify Milestone 2
+- [x] 12. Checkpoint - Verify Milestone 2
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Milestone 3: AI Integration
