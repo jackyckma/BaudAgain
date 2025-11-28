@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { AIProvider, AIOptions } from './AIProvider.js';
+import { AIProvider, AIOptions, AIProviderError } from './AIProvider.js';
 
 /**
  * Anthropic AI Provider
@@ -45,9 +45,49 @@ export class AnthropicProvider implements AIProvider {
 
       return textContent.text;
     } catch (error) {
-      // Re-throw with more context
+      // Enhanced error handling with specific error types
       if (error instanceof Error) {
-        throw new Error(`Anthropic API error: ${error.message}`);
+        // Check for specific Anthropic API errors
+        const errorMessage = error.message.toLowerCase();
+        
+        if (errorMessage.includes('api key')) {
+          throw new AIProviderError(
+            'Invalid or missing API key. Please check your ANTHROPIC_API_KEY environment variable.',
+            'INVALID_API_KEY',
+            error
+          );
+        }
+        
+        if (errorMessage.includes('rate limit')) {
+          throw new AIProviderError(
+            'Rate limit exceeded. Please try again in a moment.',
+            'RATE_LIMIT',
+            error
+          );
+        }
+        
+        if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+          throw new AIProviderError(
+            'Request timed out. The AI service may be experiencing high load.',
+            'TIMEOUT',
+            error
+          );
+        }
+        
+        if (errorMessage.includes('overloaded')) {
+          throw new AIProviderError(
+            'AI service is currently overloaded. Please try again shortly.',
+            'OVERLOADED',
+            error
+          );
+        }
+        
+        // Generic error
+        throw new AIProviderError(
+          `Anthropic API error: ${error.message}`,
+          'API_ERROR',
+          error
+        );
       }
       throw error;
     }
