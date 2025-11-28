@@ -78,11 +78,10 @@ interface CommandHandler {
 ```
 
 **Current Handlers**:
-- `EchoHandler` - Temporary testing handler
+- `AuthHandler` - User registration and login with password masking
+- `MenuHandler` - Menu navigation and Page SysOp functionality
 
 **Planned Handlers**:
-- `AuthHandler` - Registration and login
-- `MenuHandler` - Menu navigation
 - `MessageHandler` - Message board operations
 - `DoorHandler` - Door game management
 
@@ -312,7 +311,81 @@ client/terminal/src/
 - Health check endpoint
 - Graceful shutdown
 
+## New Components (Milestone 2-3)
+
+### AI Integration Layer
+
+**Location**: `server/src/ai/`
+
+**Purpose**: Provide AI-powered features through abstracted provider interface
+
+**Components**:
+- `AIProvider` - Interface for AI providers
+- `AnthropicProvider` - Claude implementation
+- `AIProviderFactory` - Creates provider instances
+- `AIService` - High-level AI service
+- `AISysOp` - AI-powered system operator
+
+**Key Features**:
+- Welcome message generation
+- User greeting generation
+- Page SysOp responses
+- ANSI color code formatting
+- Fallback responses
+
+### REST API Layer
+
+**Location**: `server/src/api/`
+
+**Purpose**: Provide HTTP REST API for control panel
+
+**Components**:
+- `routes.ts` - API endpoints and authentication
+
+**Endpoints**:
+- `POST /api/login` - SysOp authentication
+- `GET /api/dashboard` - System statistics
+- `GET /api/users` - User management
+- `GET /api/message-bases` - Message base management
+- `GET /api/ai-settings` - AI configuration
+
+**Authentication**: Bearer token with SysOp access level check (>= 255)
+
+### Control Panel (React SPA)
+
+**Location**: `client/control-panel/`
+
+**Purpose**: Web-based administration interface
+
+**Tech Stack**:
+- React 18 with TypeScript
+- Vite for build tooling
+- Tailwind CSS for styling
+
+**Pages**:
+- Dashboard - Real-time system stats
+- Users - User management table
+- Message Bases - Message base configuration
+- AI Settings - AI SysOp configuration
+
+**Features**:
+- SysOp authentication
+- Real-time data updates (5s refresh)
+- Responsive design
+- Token-based session management
+
+### Terminal Enhancements
+
+**Echo Control System**:
+- Custom OSC escape sequences for password masking
+- Client-side echo state management
+- Secure password input
+
+**Content Types**:
+- `EchoControlContent` - Control terminal echo on/off
+- Enhanced `PromptContent` with echo control
+
 ---
 
-**Last Updated**: 2024-11-28
-**Version**: 0.1.0 (Milestone 1 - Hello BBS)
+**Last Updated**: 2025-11-28
+**Version**: 0.3.0 (Milestone 3 - AI Integration + Control Panel)
