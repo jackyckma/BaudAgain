@@ -140,6 +140,10 @@ IMPORTANT RULES:
     // Trim whitespace
     let formatted = response.trim();
 
+    // Convert escaped ANSI codes to actual escape sequences
+    // The AI outputs literal strings like "\x1b[36m" which need to be converted
+    formatted = formatted.replace(/\\x1b/g, '\x1b');
+
     // Ensure response ends with proper line breaks
     if (!formatted.endsWith('\n')) {
       formatted += '\n';
