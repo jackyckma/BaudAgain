@@ -9,7 +9,7 @@
   - Create basic folder structure following the design document
   - _Requirements: All_
 
-- [ ] 2. Implement basic WebSocket server
+- [x] 2. Implement basic WebSocket server
 - [x] 2.1 Create WebSocket connection handler
   - Implement WebSocket server using Fastify WebSocket plugin
   - Create connection acceptance and basic echo functionality
@@ -26,7 +26,7 @@
   - **Property 46: Connection abstraction usage**
   - **Validates: Requirements 12.1**
 
-- [ ] 3. Create web-based terminal client
+- [x] 3. Create web-based terminal client
 - [x] 3.1 Set up xterm.js terminal
   - Create HTML page with xterm.js integration
   - Implement WebSocket client connection
@@ -51,7 +51,7 @@
   - **Property 50: ANSI escape code interpretation**
   - **Validates: Requirements 13.1**
 
-- [ ] 4. Create static ANSI welcome screen
+- [x] 4. Create static ANSI welcome screen
 - [x] 4.1 Implement ANSI template system
   - Create ANSIRenderer class with template loading
   - Implement variable substitution ({{variable}} pattern)
@@ -68,7 +68,7 @@
   - **Property 1: Welcome screen delivery on connection**
   - **Validates: Requirements 1.2**
 
-- [ ] 5. Implement basic menu system
+- [x] 5. Implement basic menu system
 - [x] 5.1 Create menu handler with simple navigation
   - Implement Menu and MenuOption interfaces
   - Create main menu with static options
@@ -76,20 +76,20 @@
   - Display menu after welcome screen
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [ ] 5.2 Add error handling for invalid commands
+- [x] 5.2 Add error handling for invalid commands
   - Detect invalid menu commands
   - Display error message and re-display menu
   - _Requirements: 3.4_
 
-- [ ] 5.3 Write property test for menu navigation
+- [ ]* 5.3 Write property test for menu navigation
   - **Property 10: Valid menu command navigation**
   - **Validates: Requirements 3.3**
 
-- [ ] 5.4 Write property test for invalid command handling
+- [ ]* 5.4 Write property test for invalid command handling
   - **Property 11: Invalid command error handling**
   - **Validates: Requirements 3.4**
 
-- [ ] 6. Checkpoint - Verify Milestone 1
+- [x] 6. Checkpoint - Verify Milestone 1
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Milestone 2: User System (Persistence & Authentication)
