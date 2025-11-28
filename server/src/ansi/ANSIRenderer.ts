@@ -51,7 +51,53 @@ export class ANSIRenderer {
    */
   render(templateName: string, variables: Record<string, string> = {}): string {
     const template = this.getTemplate(templateName);
-    return this.substituteVariables(template, variables);
+    const substituted = this.substituteVariables(template, variables);
+    
+    // Add color codes for welcome screen
+    if (templateName === 'welcome.ans') {
+      return this.colorizeWelcomeScreen(substituted);
+    }
+    
+    return substituted;
+  }
+
+  /**
+   * Add ANSI color codes to welcome screen
+   */
+  private colorizeWelcomeScreen(content: string): string {
+    const lines = content.split('\n');
+    const colored: string[] = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Box borders in cyan
+      if (line.includes('╔') || line.includes('╚') || line.includes('╠')) {
+        colored.push(`\x1b[36m${line}\x1b[0m`);
+      }
+      // Title lines (THE HAUNTED) in yellow/bright yellow
+      else if (i >= 2 && i <= 8) {
+        colored.push(`\x1b[33m${line}\x1b[0m`);
+      }
+      // Subtitle (TERMINAL) in magenta/bright magenta
+      else if (i >= 10 && i <= 15) {
+        colored.push(`\x1b[35m${line}\x1b[0m`);
+      }
+      // Tagline in gray
+      else if (line.includes('spirits')) {
+        colored.push(`\x1b[90m${line}\x1b[0m`);
+      }
+      // Status line with mixed colors
+      else if (line.includes('Node') && line.includes('callers')) {
+        colored.push(`\x1b[36m${line}\x1b[0m`);
+      }
+      // Default
+      else {
+        colored.push(line);
+      }
+    }
+    
+    return colored.join('\r\n');
   }
 
   /**

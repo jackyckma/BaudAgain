@@ -7,6 +7,10 @@ import { ANSIRenderer } from './ansi/ANSIRenderer.js';
 import { BBSDatabase } from './db/Database.js';
 import { UserRepository } from './db/repositories/UserRepository.js';
 import { SessionManager } from './session/SessionManager.js';
+import { WebTerminalRenderer } from './terminal/WebTerminalRenderer.js';
+import { BBSCore } from './core/BBSCore.js';
+import { EchoHandler } from './handlers/EchoHandler.js';
+import type { WelcomeScreenContent, PromptContent } from '@baudagain/shared';
 
 const server = Fastify({
   logger: {
@@ -29,6 +33,11 @@ const userRepository = new UserRepository(database);
 const connectionManager = new ConnectionManager(server.log);
 const sessionManager = new SessionManager(server.log);
 const ansiRenderer = new ANSIRenderer();
+const terminalRenderer = new WebTerminalRenderer();
+
+// Initialize BBS Core and register handlers
+const bbsCore = new BBSCore(sessionManager, server.log);
+bbsCore.registerHandler(new EchoHandler());
 
 // Register plugins
 await server.register(cors, {
@@ -52,40 +61,41 @@ server.register(async function (fastify) {
       'New connection established'
     );
 
-    // Send ANSI welcome screen
+    // Send welcome screen using structured content
     try {
-      const welcomeScreen = ansiRenderer.render('welcome.ans', {
+      const welcomeContent: WelcomeScreenContent = {
+        type: 'welcome_screen',
+        title: 'BAUDAGAIN BBS',
+        subtitle: 'The Haunted Terminal',
+        tagline: 'Where digital spirits dwell',
         node: '1',
-        max_nodes: '4',
-        caller_count: connectionManager.getConnectionCount().toString(),
-      });
+        maxNodes: '4',
+        callerCount: connectionManager.getConnectionCount().toString(),
+      };
+      
+      const welcomeScreen = terminalRenderer.render(welcomeContent);
       await connection.send(welcomeScreen);
-      await connection.send('\r\nEnter your handle, or type NEW to register: ');
+      
+      const promptContent: PromptContent = {
+        type: 'prompt',
+        text: '\r\nEnter your handle, or type NEW to register: ',
+      };
+      await connection.send(terminalRenderer.render(promptContent));
     } catch (err) {
       fastify.log.error({ err }, 'Error sending welcome screen');
       await connection.send('Welcome to BaudAgain BBS!\r\n');
       await connection.send('Enter your handle, or type NEW to register: ');
     }
 
-    // Handle incoming data
-    connection.onData((input) => {
-      const trimmedInput = input.trim();
-      
-      // Update session activity
-      sessionManager.touchSession(session.id);
-      
-      fastify.log.info(
-        { connectionId: connection.id, sessionId: session.id, input: trimmedInput },
-        'Received input'
-      );
-      
-      // Echo back for now
-      connection.send(`You typed: ${trimmedInput}\r\n`).catch(err => 
-        fastify.log.error({ err }, 'Error sending response')
-      );
-      connection.send('Type something: ').catch(err => 
-        fastify.log.error({ err }, 'Error sending prompt')
-      );
+    // Handle incoming data - route through BBSCore
+    connection.onData(async (input) => {
+      try {
+        const response = await bbsCore.processInput(session.id, input);
+        await connection.send(response);
+      } catch (err) {
+        fastify.log.error({ err, sessionId: session.id }, 'Error processing input');
+        await connection.send('An error occurred. Please try again.\r\n');
+      }
     });
 
     // Handle connection close

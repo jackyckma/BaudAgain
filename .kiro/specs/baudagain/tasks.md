@@ -39,7 +39,15 @@
   - Test color rendering (standard and bright variants)
   - _Requirements: 13.1, 13.2, 13.3_
 
-- [x] 3.3 Write property test for ANSI rendering
+- [x] 3.3 Create terminal abstraction layer
+  - Define structured content types (welcome screen, menu, message, etc.)
+  - Create TerminalRenderer interface
+  - Implement ANSITerminalRenderer for raw ANSI output
+  - Implement WebTerminalRenderer for xterm.js compatible output
+  - Update server to use structured content and renderers
+  - _Requirements: 13.1, 13.2, 13.3, 12.3, 12.4_
+
+- [x] 3.4 Write property test for ANSI rendering
   - **Property 50: ANSI escape code interpretation**
   - **Validates: Requirements 13.1**
 
@@ -103,7 +111,7 @@
   - **Validates: Requirements 9.1**
 
 - [ ] 8. Implement session management
-- [-] 8.1 Create Session and SessionManager
+- [x] 8.1 Create Session and SessionManager
   - Implement Session interface with state tracking
   - Create SessionManager to manage session lifecycle
   - Link sessions to connections

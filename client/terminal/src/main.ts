@@ -112,7 +112,20 @@ terminal.onData((data) => {
 connect();
 
 // Display initial message
-terminal.writeln('\x1b[36m╔══════════════════════════════════════════════════════════════╗\x1b[0m');
-terminal.writeln('\x1b[36m║\x1b[0m           \x1b[1;33mBaudAgain BBS Terminal Client\x1b[0m                  \x1b[36m║\x1b[0m');
-terminal.writeln('\x1b[36m╚══════════════════════════════════════════════════════════════╝\x1b[0m');
+const cyan = '\x1b[36m';
+const yellow = '\x1b[1;33m';
+const reset = '\x1b[0m';
+
+// Helper to center text in a box
+function centerText(text: string, width: number): string {
+  const padding = Math.floor((width - text.length) / 2);
+  return ' '.repeat(padding) + text + ' '.repeat(width - padding - text.length);
+}
+
+const title = 'BaudAgain BBS Terminal Client';
+const centeredTitle = centerText(title, 62);
+
+terminal.writeln(cyan + '╔══════════════════════════════════════════════════════════════╗' + reset);
+terminal.writeln(cyan + '║' + reset + yellow + centeredTitle + reset + cyan + '║' + reset);
+terminal.writeln(cyan + '╚══════════════════════════════════════════════════════════════╝' + reset);
 terminal.writeln('');

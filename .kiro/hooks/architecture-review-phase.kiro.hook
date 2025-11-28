@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Architecture Review on Phase Completion",
+  "description": "Monitors chat conversations and triggers a comprehensive architecture review when a major phase is completed. Analyzes overall architecture compliance, design patterns, best practices, and identifies issues like shortcuts, direct module linkages, redundant functions, and poor abstractions. Generates maintainability-focused suggestions.",
+  "version": "1",
+  "when": {
+    "type": "agentEnd"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A major development phase has just been completed. Conduct a comprehensive architecture review of the codebase:\n\n1. **Architecture Compliance**: Review the overall architecture and verify alignment with design principles\n2. **Design Patterns**: Identify design patterns in use and assess their appropriateness\n3. **Code Quality Issues**: Look for:\n   - Shortcuts taken to fix bugs that bypass proper architecture\n   - Direct linkages between modules that violate separation of concerns\n   - Redundant functions that could be abstracted or consolidated\n   - Similar functionality implemented in multiple places without proper abstraction\n   - Functions that should be extended rather than duplicated\n4. **Best Practices**: Evaluate adherence to coding standards and best practices\n5. **Maintainability**: Focus on long-term maintainability concerns\n\nAnalyze the code changes from this phase and generate specific, actionable suggestions for improving code quality while maintaining existing functionality. Prioritize maintainability improvements."
+  }
+}
