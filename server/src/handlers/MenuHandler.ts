@@ -13,7 +13,11 @@ import { ContentType } from '@baudagain/shared';
 export class MenuHandler implements CommandHandler {
   private menus: Map<string, Menu> = new Map();
 
-  constructor(private renderer: TerminalRenderer) {
+  constructor(
+    private renderer: TerminalRenderer,
+    private aiSysOp?: any,  // Optional AI SysOp for Page SysOp feature
+    private sessionManager?: any  // Optional SessionManager for state updates
+  ) {
     this.initializeMenus();
   }
 
@@ -67,6 +71,11 @@ export class MenuHandler implements CommandHandler {
 
   async handle(command: string, session: Session): Promise<string> {
     const upperCommand = command.toUpperCase();
+
+    // Check if we're in Page SysOp flow
+    if (session.data.pagingSysOp) {
+      return this.handlePageSysOpInput(command, session);
+    }
 
     // Ensure we have a valid menu, default to 'main'
     const currentMenuId = this.menus.has(session.currentMenu) ? session.currentMenu : 'main';
@@ -123,35 +132,103 @@ export class MenuHandler implements CommandHandler {
   /**
    * Handle a menu option selection
    */
-  private handleMenuOption(option: MenuOption, session: Session): Promise<string> {
-    // For now, just acknowledge the selection
-    // In the future, this will route to appropriate handlers
+  private async handleMenuOption(option: MenuOption, session: Session): Promise<string> {
     switch (option.key.toUpperCase()) {
       case 'M':
-        return Promise.resolve(
-          '\r\nMessage Bases coming soon!\r\n\r\n' + this.displayMenu('main')
-        );
+        return '\r\nMessage Bases coming soon!\r\n\r\n' + this.displayMenu('main');
+      
       case 'D':
-        return Promise.resolve(
-          '\r\nDoor Games coming soon!\r\n\r\n' + this.displayMenu('main')
-        );
+        return '\r\nDoor Games coming soon!\r\n\r\n' + this.displayMenu('main');
+      
       case 'P':
-        return Promise.resolve(
-          '\r\nAI SysOp coming soon!\r\n\r\n' + this.displayMenu('main')
-        );
+        return this.startPageSysOp(session);
+      
       case 'U':
-        return Promise.resolve(
-          '\r\nUser Profile coming soon!\r\n\r\n' + this.displayMenu('main')
-        );
+        return '\r\nUser Profile coming soon!\r\n\r\n' + this.displayMenu('main');
+      
       case 'G':
-        return Promise.resolve(
-          '\r\n\x1b[33mGoodbye! Thanks for calling BaudAgain BBS.\x1b[0m\r\n\r\n' +
-            'Connection will close in 3 seconds...\r\n'
-        );
+        return '\r\n\x1b[33mGoodbye! Thanks for calling BaudAgain BBS.\x1b[0m\r\n\r\n' +
+               'Connection will close in 3 seconds...\r\n';
+      
       default:
-        return Promise.resolve(
-          `\r\n"${option.label}" is not yet implemented.\r\n\r\n` + this.displayMenu('main')
-        );
+        return `\r\n"${option.label}" is not yet implemented.\r\n\r\n` + this.displayMenu('main');
+    }
+  }
+
+  /**
+   * Start the Page SysOp flow
+   */
+  private startPageSysOp(session: Session): string {
+    if (!this.aiSysOp) {
+      return '\r\n\x1b[33mThe AI SysOp is not available at this time.\x1b[0m\r\n\r\n' +
+             this.displayMenu('main');
+    }
+
+    // Set session state to indicate we're paging the SysOp
+    if (this.sessionManager) {
+      this.sessionManager.updateSession(session.id, {
+        data: {
+          ...session.data,
+          pagingSysOp: true,
+        },
+      });
+    }
+
+    return '\r\n\x1b[36m=== Page SysOp ===\x1b[0m\r\n\r\n' +
+           'The AI SysOp is here to help!\r\n\r\n' +
+           'You can ask a question, or just press Enter for general help.\r\n' +
+           'Type \x1b[33mCANCEL\x1b[0m to return to the main menu.\r\n\r\n' +
+           'Your question (or press Enter): ';
+  }
+
+  /**
+   * Handle input during Page SysOp flow
+   */
+  private async handlePageSysOpInput(input: string, session: Session): Promise<string> {
+    // Check for cancel
+    if (input.toUpperCase() === 'CANCEL') {
+      if (this.sessionManager) {
+        this.sessionManager.updateSession(session.id, {
+          data: {
+            ...session.data,
+            pagingSysOp: false,
+          },
+        });
+      }
+      return '\r\n\x1b[33mPage cancelled.\x1b[0m\r\n\r\n' + this.displayMenu('main');
+    }
+
+    // Clear the paging state
+    if (this.sessionManager) {
+      this.sessionManager.updateSession(session.id, {
+        data: {
+          ...session.data,
+          pagingSysOp: false,
+        },
+      });
+    }
+
+    // Get response from AI SysOp
+    if (!this.aiSysOp) {
+      return '\r\n\x1b[33mThe AI SysOp is not available.\x1b[0m\r\n\r\n' +
+             this.displayMenu('main');
+    }
+
+    try {
+      const question = input.trim() || undefined;
+      const handle = session.handle || 'User';
+      
+      // Show "thinking" message
+      const thinking = '\r\n\x1b[36mThe SysOp is responding...\x1b[0m\r\n\r\n';
+      
+      // Get AI response (with 5 second timeout as per requirements)
+      const response = await this.aiSysOp.respondToPage(handle, question);
+      
+      return thinking + response + '\r\n' + this.displayMenu('main');
+    } catch (error) {
+      console.error('Page SysOp error:', error);
+      return '\r\n\x1b[31mThe SysOp is temporarily unavailable. Please try again later.\x1b[0m\r\n\r\n' +
+             this.displayMenu('main');
     }
   }
 

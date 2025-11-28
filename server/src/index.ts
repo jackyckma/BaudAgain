@@ -68,7 +68,7 @@ const bbsCore = new BBSCore(sessionManager, server.log);
 // Register AuthHandler first (takes precedence for CONNECTED/AUTHENTICATING states)
 bbsCore.registerHandler(new AuthHandler(userRepository, sessionManager, terminalRenderer, aiSysOp));
 // Register MenuHandler for authenticated users
-bbsCore.registerHandler(new MenuHandler(terminalRenderer));
+bbsCore.registerHandler(new MenuHandler(terminalRenderer, aiSysOp, sessionManager));
 
 // Register plugins
 await server.register(cors, {
