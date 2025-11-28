@@ -229,6 +229,20 @@ export class ConfigLoader {
   }
 
   /**
+   * Get JWT configuration from environment
+   */
+  getJWTConfig(): { secret: string; expiresIn?: string | number } {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET environment variable is required');
+    }
+
+    const expiresIn = process.env.JWT_EXPIRATION || '24h';
+
+    return { secret, expiresIn };
+  }
+
+  /**
    * Save configuration to file
    */
   save(config: BBSConfig): void {

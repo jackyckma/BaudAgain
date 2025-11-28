@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { UserRepository } from '../db/repositories/UserRepository.js';
 import type { SessionManager } from '../session/SessionManager.js';
+import type { JWTUtil } from '../auth/jwt.js';
 import bcrypt from 'bcrypt';
 
 /**
@@ -9,50 +10,48 @@ import bcrypt from 'bcrypt';
 export async function registerAPIRoutes(
   server: FastifyInstance,
   userRepository: UserRepository,
-  sessionManager: SessionManager
+  sessionManager: SessionManager,
+  jwtUtil: JWTUtil
 ) {
   // Authentication middleware
   const authenticate = async (request: any, reply: any) => {
     const authHeader = request.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      reply.code(401).send({ error: 'Unauthorized' });
+      reply.code(401).send({ error: 'Unauthorized - Missing or invalid authorization header' });
       return;
     }
 
     const token = authHeader.substring(7);
     
-    // Simple token validation (in production, use JWT or similar)
-    // For now, we'll use a simple format: base64(handle:password)
     try {
-      const decoded = Buffer.from(token, 'base64').toString('utf-8');
-      const [handle, password] = decoded.split(':');
+      // Verify JWT token
+      const payload = jwtUtil.verifyToken(token);
       
-      const user = await userRepository.getUserByHandle(handle);
-      
-      if (!user) {
-        reply.code(401).send({ error: 'Invalid credentials' });
-        return;
-      }
-
       // Check if user is SysOp (access level >= 255)
-      if (user.accessLevel < 255) {
+      if (payload.accessLevel < 255) {
         reply.code(403).send({ error: 'Forbidden - SysOp access required' });
         return;
       }
 
-      // Verify password
-      const passwordMatch = await bcrypt.compare(password, user.passwordHash);
-      
-      if (!passwordMatch) {
-        reply.code(401).send({ error: 'Invalid credentials' });
-        return;
-      }
-
-      // Attach user to request
-      request.user = user;
+      // Attach user info to request
+      request.user = {
+        id: payload.userId,
+        handle: payload.handle,
+        accessLevel: payload.accessLevel,
+      };
     } catch (error) {
-      reply.code(401).send({ error: 'Invalid token' });
+      if (error instanceof Error) {
+        if (error.message === 'Token expired') {
+          reply.code(401).send({ error: 'Token expired' });
+        } else if (error.message === 'Invalid token') {
+          reply.code(401).send({ error: 'Invalid token' });
+        } else {
+          reply.code(401).send({ error: 'Authentication failed' });
+        }
+      } else {
+        reply.code(401).send({ error: 'Authentication failed' });
+      }
       return;
     }
   };
@@ -153,8 +152,12 @@ export async function registerAPIRoutes(
       return;
     }
 
-    // Generate token (simple base64 encoding for now)
-    const token = Buffer.from(`${handle}:${password}`).toString('base64');
+    // Generate JWT token
+    const token = jwtUtil.generateToken({
+      userId: user.id,
+      handle: user.handle,
+      accessLevel: user.accessLevel,
+    });
     
     return {
       token,

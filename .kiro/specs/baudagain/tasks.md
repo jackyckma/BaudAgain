@@ -348,6 +348,128 @@
 - [ ] 17. Checkpoint - Verify Milestone 3
   - Ensure all tests pass, ask the user if questions arise.
 
+## Milestone 3.5: Security & Refactoring
+
+- [ ] 17.5. Implement JWT-based API authentication (P0 - Critical)
+- [ ] 17.5.1 Add JWT library and configuration
+  - Install jsonwebtoken library
+  - Add JWT secret to environment variables
+  - Configure token signing and verification settings
+  - _Requirements: 15.6 (Security)_
+  - _Architecture Review: P0 - JWT tokens are currently just random strings_
+
+- [ ] 17.5.2 Implement JWT token generation
+  - Replace random token generation with JWT signing
+  - Include user ID, handle, and access level in token payload
+  - Add token expiration (24 hours default)
+  - Update login endpoint to return JWT tokens
+  - _Requirements: 15.6 (Security)_
+  - _Architecture Review: P0 - Security vulnerability_
+
+- [ ] 17.5.3 Implement JWT token verification middleware
+  - Create middleware to verify JWT tokens on protected routes
+  - Extract and validate token from Authorization header
+  - Attach decoded user information to request context
+  - Handle expired and invalid tokens with appropriate errors
+  - _Requirements: 15.6 (Security)_
+  - _Architecture Review: P0 - Security vulnerability_
+
+- [ ] 17.5.4 Add token expiration and refresh mechanism
+  - Implement token expiration checking
+  - Add refresh token endpoint (optional)
+  - Update control panel to handle token expiration
+  - Redirect to login on expired tokens
+  - _Requirements: 15.6 (Security)_
+  - _Architecture Review: P0 - Tokens never expire currently_
+
+- [ ]* 17.5.5 Write unit tests for JWT authentication
+  - Test token generation with valid user data
+  - Test token verification with valid/invalid/expired tokens
+  - Test middleware behavior on protected routes
+  - Test token expiration handling
+  - _Requirements: 15.6 (Security)_
+
+- [ ] 17.6. Implement API rate limiting (P0 - Critical)
+- [ ] 17.6.1 Add rate limiting middleware
+  - Install rate limiting library (e.g., @fastify/rate-limit)
+  - Configure rate limits for API endpoints
+  - Set limits: 100 requests per 15 minutes per IP
+  - Add rate limit headers to responses
+  - _Requirements: 15.1, 15.2, 15.3_
+  - _Architecture Review: P0 - API has no rate limiting_
+
+- [ ] 17.6.2 Implement per-endpoint rate limiting
+  - Add stricter limits for authentication endpoints (10/min)
+  - Add limits for data modification endpoints (30/min)
+  - Configure different limits for authenticated vs unauthenticated requests
+  - _Requirements: 15.1, 15.2, 15.3_
+  - _Architecture Review: P0 - Prevent API abuse_
+
+- [ ]* 17.6.3 Write unit tests for rate limiting
+  - Test rate limit enforcement
+  - Test rate limit headers
+  - Test different limits for different endpoints
+  - _Requirements: 15.1, 15.2, 15.3_
+
+- [ ] 17.7. Extract service layer (P1 - High Priority)
+- [ ] 17.7.1 Create UserService class
+  - Extract user-related business logic from AuthHandler
+  - Move user creation, validation, and authentication logic
+  - Create methods: createUser, validateHandle, authenticateUser
+  - Update AuthHandler to use UserService
+  - _Architecture Review: P1 - Handlers contain too much business logic_
+
+- [ ] 17.7.2 Create SessionService class
+  - Extract session management logic from SessionManager
+  - Move session creation, validation, and cleanup logic
+  - Create methods: createSession, validateSession, cleanupSession
+  - Update SessionManager to use SessionService
+  - _Architecture Review: P1 - Better separation of concerns_
+
+- [ ] 17.7.3 Create AIService class
+  - Extract AI interaction logic from AISysOp
+  - Move prompt construction and response formatting
+  - Create methods: generateWelcome, generateGreeting, generateResponse
+  - Update AISysOp to use AIService
+  - _Architecture Review: P1 - Centralize AI logic_
+
+- [ ]* 17.7.4 Write unit tests for service layer
+  - Test UserService methods
+  - Test SessionService methods
+  - Test AIService methods
+  - _Architecture Review: P1 - Ensure services work correctly_
+
+- [ ] 17.8. Deduplicate code (P1 - High Priority)
+- [ ] 17.8.1 Create shared validation utilities
+  - Extract common validation logic (handle, password, input sanitization)
+  - Create ValidationUtils class with reusable methods
+  - Update all handlers to use shared validation
+  - _Architecture Review: P1 - Validation logic duplicated across handlers_
+
+- [ ] 17.8.2 Create shared error handling utilities
+  - Extract common error handling patterns
+  - Create ErrorHandler class with standard error responses
+  - Update all routes and handlers to use shared error handling
+  - _Architecture Review: P1 - Error handling duplicated_
+
+- [ ] 17.8.3 Consolidate terminal rendering logic
+  - Review ANSITerminalRenderer and WebTerminalRenderer for duplication
+  - Extract common rendering utilities
+  - Create shared base class or utility functions
+  - _Architecture Review: P1 - Some duplication in renderers_
+
+- [ ]* 17.8.4 Write unit tests for shared utilities
+  - Test validation utilities
+  - Test error handling utilities
+  - Test rendering utilities
+  - _Architecture Review: P1 - Ensure utilities work correctly_
+
+- [ ] 17.9. Checkpoint - Verify Milestone 3.5
+  - Ensure all tests pass, ask the user if questions arise.
+  - Verify JWT authentication works in control panel
+  - Verify rate limiting is enforced
+  - Verify service layer improves code organization
+
 ## Milestone 4: Door Game (The Oracle)
 
 - [ ] 18. Implement door game framework

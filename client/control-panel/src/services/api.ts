@@ -33,6 +33,7 @@ interface User {
 
 class APIClient {
   private token: string | null = null;
+  private onTokenExpired?: () => void;
 
   constructor() {
     // Load token from localStorage
@@ -47,6 +48,10 @@ class APIClient {
   clearToken() {
     this.token = null;
     localStorage.removeItem('auth_token');
+  }
+
+  setOnTokenExpired(callback: () => void) {
+    this.onTokenExpired = callback;
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -66,7 +71,17 @@ class APIClient {
 
     if (!response.ok) {
       if (response.status === 401) {
+        const errorData = await response.json().catch(() => ({ error: 'Unauthorized' }));
         this.clearToken();
+        
+        // Check if it's a token expiration
+        if (errorData.error === 'Token expired') {
+          if (this.onTokenExpired) {
+            this.onTokenExpired();
+          }
+          throw new Error('Token expired');
+        }
+        
         throw new Error('Unauthorized');
       }
       throw new Error(`API Error: ${response.statusText}`);

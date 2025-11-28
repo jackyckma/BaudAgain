@@ -14,6 +14,12 @@ function App() {
 
   useEffect(() => {
     setIsAuthenticated(api.isAuthenticated());
+    
+    // Set up token expiration handler
+    api.setOnTokenExpired(() => {
+      setIsAuthenticated(false);
+      alert('Your session has expired. Please log in again.');
+    });
   }, []);
 
   const handleLoginSuccess = () => {

@@ -24,6 +24,7 @@ import { getConfigLoader } from './config/index.js';
 import type { WelcomeScreenContent, PromptContent } from '@baudagain/shared';
 import { ContentType } from '@baudagain/shared';
 import { registerAPIRoutes } from './api/routes.js';
+import { JWTUtil } from './auth/jwt.js';
 
 const server = Fastify({
   logger: {
@@ -41,6 +42,11 @@ const server = Fastify({
 // Load configuration
 const configLoader = getConfigLoader();
 const config = configLoader.getConfig();
+
+// Initialize JWT utility
+const jwtConfig = configLoader.getJWTConfig();
+const jwtUtil = new JWTUtil(jwtConfig as any); // Type assertion needed due to StringValue type complexity
+server.log.info('JWT authentication initialized');
 
 // Initialize database
 const database = new BBSDatabase('data/bbs.db', server.log);
@@ -153,7 +159,7 @@ server.register(async function (fastify) {
 });
 
 // Register REST API routes for control panel
-await registerAPIRoutes(server, userRepository, sessionManager);
+await registerAPIRoutes(server, userRepository, sessionManager, jwtUtil);
 
 // Health check endpoint
 server.get('/health', async () => {
