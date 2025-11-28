@@ -12,3 +12,4 @@ export * from './AIProvider.js';
 export * from './AnthropicProvider.js';
 export * from './AIProviderFactory.js';
 export * from './AIService.js';
+export * from './AISysOp.js';

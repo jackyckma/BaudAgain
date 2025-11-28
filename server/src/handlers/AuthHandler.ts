@@ -23,7 +23,8 @@ export class AuthHandler implements CommandHandler {
   constructor(
     private userRepository: UserRepository,
     private sessionManager: SessionManager,
-    private renderer: TerminalRenderer
+    private renderer: TerminalRenderer,
+    private aiSysOp?: any  // Optional AI SysOp for welcome messages
   ) {}
 
   canHandle(command: string, session: Session): boolean {
@@ -211,9 +212,22 @@ export class AuthHandler implements CommandHandler {
         data: {},
       });
 
+      // Generate AI welcome message if available
+      let welcomeText = `\r\nWelcome to BaudAgain BBS, ${user.handle}!\r\nYou are now logged in.\r\n\r\n`;
+      
+      if (this.aiSysOp) {
+        try {
+          const aiWelcome = await this.aiSysOp.generateWelcome(user.handle);
+          welcomeText = `\r\n${aiWelcome}\r\n`;
+        } catch (error) {
+          // Fall back to default message if AI fails
+          console.error('AI SysOp welcome failed:', error);
+        }
+      }
+
       const success: MessageContent = {
         type: ContentType.MESSAGE,
-        text: `\r\nWelcome to BaudAgain BBS, ${user.handle}!\r\nYou are now logged in.\r\n\r\n`,
+        text: welcomeText,
         style: 'success',
       };
 
@@ -271,14 +285,27 @@ export class AuthHandler implements CommandHandler {
         data: {},
       });
 
-      // Build welcome message with last login info
-      const lastLoginText = user.lastLogin 
-        ? `Last login: ${user.lastLogin.toLocaleString()}`
-        : 'This is your first login!';
+      // Generate AI greeting if available
+      let greetingText = `\r\nWelcome back, ${user.handle}!\r\n`;
+      if (user.lastLogin) {
+        greetingText += `Last login: ${user.lastLogin.toLocaleString()}\r\n\r\n`;
+      } else {
+        greetingText += `This is your first login!\r\n\r\n`;
+      }
+      
+      if (this.aiSysOp) {
+        try {
+          const aiGreeting = await this.aiSysOp.generateGreeting(user.handle, user.lastLogin);
+          greetingText = `\r\n${aiGreeting}\r\n`;
+        } catch (error) {
+          // Fall back to default message if AI fails
+          console.error('AI SysOp greeting failed:', error);
+        }
+      }
       
       const success: MessageContent = {
         type: ContentType.MESSAGE,
-        text: `\r\nWelcome back, ${user.handle}!\r\n${lastLoginText}\r\n\r\n`,
+        text: greetingText,
         style: 'success',
       };
 

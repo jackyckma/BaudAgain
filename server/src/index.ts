@@ -11,6 +11,8 @@ import { WebTerminalRenderer } from './terminal/WebTerminalRenderer.js';
 import { BBSCore } from './core/BBSCore.js';
 import { AuthHandler } from './handlers/AuthHandler.js';
 import { MenuHandler } from './handlers/MenuHandler.js';
+import { AIProviderFactory, AIService, AISysOp } from './ai/index.js';
+import { getConfigLoader } from './config/index.js';
 import type { WelcomeScreenContent, PromptContent } from '@baudagain/shared';
 import { ContentType } from '@baudagain/shared';
 
@@ -27,6 +29,10 @@ const server = Fastify({
   },
 });
 
+// Load configuration
+const configLoader = getConfigLoader();
+const config = configLoader.getConfig();
+
 // Initialize database
 const database = new BBSDatabase('data/bbs.db', server.log);
 const userRepository = new UserRepository(database);
@@ -37,10 +43,30 @@ const sessionManager = new SessionManager(server.log);
 const ansiRenderer = new ANSIRenderer();
 const terminalRenderer = new WebTerminalRenderer();
 
+// Initialize AI (if enabled)
+let aiSysOp: AISysOp | undefined;
+try {
+  if (config.ai.sysop.enabled) {
+    const apiKey = configLoader.getAIApiKey();
+    const aiProvider = AIProviderFactory.create({
+      provider: config.ai.provider,
+      model: config.ai.model,
+      apiKey,
+    });
+    const aiService = new AIService(aiProvider, server.log);
+    aiSysOp = new AISysOp(aiService, config, server.log);
+    server.log.info('AI SysOp initialized successfully');
+  } else {
+    server.log.info('AI SysOp disabled in configuration');
+  }
+} catch (error) {
+  server.log.error({ error }, 'Failed to initialize AI SysOp - continuing without AI features');
+}
+
 // Initialize BBS Core and register handlers
 const bbsCore = new BBSCore(sessionManager, server.log);
 // Register AuthHandler first (takes precedence for CONNECTED/AUTHENTICATING states)
-bbsCore.registerHandler(new AuthHandler(userRepository, sessionManager, terminalRenderer));
+bbsCore.registerHandler(new AuthHandler(userRepository, sessionManager, terminalRenderer, aiSysOp));
 // Register MenuHandler for authenticated users
 bbsCore.registerHandler(new MenuHandler(terminalRenderer));
 
