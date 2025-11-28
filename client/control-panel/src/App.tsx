@@ -1,13 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import MessageBases from './pages/MessageBases';
 import AISettings from './pages/AISettings';
+import Login from './components/Login';
+import { api } from './services/api';
 
 type Page = 'dashboard' | 'users' | 'messageBases' | 'aiSettings';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    setIsAuthenticated(api.isAuthenticated());
+  }, []);
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    api.clearToken();
+    setIsAuthenticated(false);
+  };
+
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
 
   const renderPage = () => {
     switch (currentPage) {
@@ -28,10 +48,16 @@ function App() {
     <div className="min-h-screen bg-gray-900 text-gray-100">
       {/* Header */}
       <header className="bg-gray-800 border-b border-cyan-500">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-cyan-400">
             BaudAgain BBS - SysOp Control Panel
           </h1>
+          <button
+            onClick={handleLogout}
+            className="text-gray-300 hover:text-white transition-colors"
+          >
+            Logout
+          </button>
         </div>
       </header>
 

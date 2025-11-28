@@ -302,7 +302,7 @@
   - Add CORS configuration for local development
   - _Requirements: 8.1_
 
-- [ ] 15.3 Create dashboard page
+- [x] 15.3 Create dashboard page
   - Display current callers and active sessions
   - Show recent activity log
   - Display system status (uptime, node usage)
