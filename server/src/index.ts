@@ -9,8 +9,10 @@ import { UserRepository } from './db/repositories/UserRepository.js';
 import { SessionManager } from './session/SessionManager.js';
 import { WebTerminalRenderer } from './terminal/WebTerminalRenderer.js';
 import { BBSCore } from './core/BBSCore.js';
+import { AuthHandler } from './handlers/AuthHandler.js';
 import { MenuHandler } from './handlers/MenuHandler.js';
 import type { WelcomeScreenContent, PromptContent } from '@baudagain/shared';
+import { ContentType } from '@baudagain/shared';
 
 const server = Fastify({
   logger: {
@@ -37,6 +39,9 @@ const terminalRenderer = new WebTerminalRenderer();
 
 // Initialize BBS Core and register handlers
 const bbsCore = new BBSCore(sessionManager, server.log);
+// Register AuthHandler first (takes precedence for CONNECTED/AUTHENTICATING states)
+bbsCore.registerHandler(new AuthHandler(userRepository, sessionManager, terminalRenderer));
+// Register MenuHandler for authenticated users
 bbsCore.registerHandler(new MenuHandler(terminalRenderer));
 
 // Register plugins
@@ -64,7 +69,7 @@ server.register(async function (fastify) {
     // Send welcome screen using structured content
     try {
       const welcomeContent: WelcomeScreenContent = {
-        type: 'welcome_screen',
+        type: ContentType.WELCOME_SCREEN,
         title: 'BAUDAGAIN BBS',
         subtitle: 'The Haunted Terminal',
         tagline: 'Where digital spirits dwell',
@@ -76,11 +81,10 @@ server.register(async function (fastify) {
       const welcomeScreen = terminalRenderer.render(welcomeContent);
       await connection.send(welcomeScreen);
       
-      // Send initial prompt - for now, go straight to menu
-      // (Authentication will be added later)
+      // Send login prompt
       const promptContent: PromptContent = {
-        type: 'prompt',
-        text: '\r\nPress ENTER to continue...',
+        type: ContentType.PROMPT,
+        text: '\r\nEnter your handle, or type NEW to register: ',
       };
       await connection.send(terminalRenderer.render(promptContent));
     } catch (err) {

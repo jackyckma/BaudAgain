@@ -1,7 +1,8 @@
 import type { CommandHandler } from '../core/CommandHandler.js';
-import type { Session, SessionState, Menu } from '@baudagain/shared';
+import type { Session, SessionState, Menu, MenuOption } from '@baudagain/shared';
 import type { TerminalRenderer } from '@baudagain/shared';
 import type { MenuContent } from '@baudagain/shared';
+import { ContentType } from '@baudagain/shared';
 
 /**
  * Menu Handler
@@ -57,10 +58,9 @@ export class MenuHandler implements CommandHandler {
   }
 
   canHandle(command: string, session: Session): boolean {
-    // Handle commands when in CONNECTED state (before auth is implemented)
-    // or when in IN_MENU state (after auth is implemented)
+    // Handle commands when authenticated or in menu
     return (
-      session.state === ('connected' as SessionState) ||
+      session.state === ('authenticated' as SessionState) ||
       session.state === ('in_menu' as SessionState)
     );
   }
@@ -71,8 +71,8 @@ export class MenuHandler implements CommandHandler {
     // Ensure we have a valid menu, default to 'main'
     const currentMenuId = this.menus.has(session.currentMenu) ? session.currentMenu : 'main';
 
-    // If empty command, show current menu
-    if (command === '') {
+    // If empty command or just authenticated, show current menu
+    if (command === '' || command.trim() === '') {
       return this.displayMenu(currentMenuId);
     }
 
@@ -108,7 +108,7 @@ export class MenuHandler implements CommandHandler {
     }
 
     const menuContent: MenuContent = {
-      type: 'menu',
+      type: ContentType.MENU,
       title: menu.title,
       options: menu.options.map((opt) => ({
         key: opt.key,

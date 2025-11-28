@@ -81,6 +81,40 @@ export class UserRepository {
   }
 
   /**
+   * Create user (alias for create with full User object)
+   */
+  createUser(user: Omit<User, 'lastLogin'>): User {
+    const now = new Date().toISOString();
+    
+    this.db.run(
+      `INSERT INTO users (id, handle, password_hash, real_name, location, bio, access_level, created_at, total_calls, total_posts, preferences)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        user.id,
+        user.handle,
+        user.passwordHash,
+        user.realName || null,
+        user.location || null,
+        user.bio || null,
+        user.accessLevel,
+        now,
+        user.totalCalls,
+        user.totalPosts,
+        JSON.stringify(user.preferences),
+      ]
+    );
+
+    return this.findById(user.id)!;
+  }
+
+  /**
+   * Get user by handle (alias for findByHandle)
+   */
+  getUserByHandle(handle: string): User | undefined {
+    return this.findByHandle(handle);
+  }
+
+  /**
    * Update last login time
    */
   updateLastLogin(userId: string): void {

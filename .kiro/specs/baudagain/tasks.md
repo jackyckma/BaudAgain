@@ -94,7 +94,7 @@
 
 ## Milestone 2: User System (Persistence & Authentication)
 
-- [ ] 7. Set up SQLite database
+- [x] 7. Set up SQLite database
 - [x] 7.1 Create database schema
   - Implement schema.sql with users, message_bases, messages, door_sessions, activity_log tables
   - Create Database class for connection management
@@ -106,11 +106,11 @@
   - Add methods for user creation, retrieval by handle, and authentication
   - _Requirements: 9.2_
 
-- [ ] 7.3 Write property test for database initialization
+- [ ]* 7.3 Write property test for database initialization
   - **Property 32: Database initialization**
   - **Validates: Requirements 9.1**
 
-- [ ] 8. Implement session management
+- [x] 8. Implement session management
 - [x] 8.1 Create Session and SessionManager
   - Implement Session interface with state tracking
   - Create SessionManager to manage session lifecycle
@@ -118,37 +118,37 @@
   - Track session state (connected, authenticating, authenticated, etc.)
   - _Requirements: 10.1, 10.5_
 
-- [ ] 8.2 Add session timeout handling
+- [x] 8.2 Add session timeout handling
   - Implement periodic cleanup of inactive sessions
   - Disconnect callers after 60 minutes of inactivity
   - _Requirements: 10.3_
 
-- [ ] 8.3 Implement session cleanup on disconnect
+- [x] 8.3 Implement session cleanup on disconnect
   - Clean up session data when connection closes
   - Free allocated node
   - _Requirements: 10.4_
 
-- [ ] 8.4 Write property test for session creation
+- [ ]* 8.4 Write property test for session creation
   - **Property 37: Session creation with unique ID**
   - **Validates: Requirements 10.1**
 
-- [ ] 8.5 Write property test for session isolation
+- [ ]* 8.5 Write property test for session isolation
   - **Property 38: Session isolation**
   - **Validates: Requirements 10.2**
 
-- [ ] 8.6 Write property test for session timeout
+- [ ]* 8.6 Write property test for session timeout
   - **Property 39: Session timeout**
   - **Validates: Requirements 10.3**
 
 - [ ] 9. Implement user registration
-- [ ] 9.1 Create authentication handler
+- [x] 9.1 Create authentication handler
   - Implement AuthHandler class
   - Add registration flow (handle, password, optional profile)
   - Implement handle validation (3-20 chars, unique)
   - Hash passwords with bcrypt (cost factor 10)
   - _Requirements: 2.2, 2.3, 2.4_
 
-- [ ] 9.2 Integrate registration with menu system
+- [x] 9.2 Integrate registration with menu system
   - Detect "NEW" command on initial prompt
   - Guide user through registration steps
   - Store user in database
