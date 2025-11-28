@@ -217,13 +217,13 @@
 ## Milestone 3: AI Integration
 
 - [ ] 13. Implement AI provider abstraction
-- [ ] 13.1 Create AI provider interface and factory
+- [x] 13.1 Create AI provider interface and factory
   - Define AIProvider interface
   - Implement AnthropicProvider using @anthropic-ai/sdk
   - Create AIProviderFactory to instantiate providers based on config
   - _Requirements: 11.1, 11.2_
 
-- [ ] 13.2 Add configuration loading for AI
+- [x] 13.2 Add configuration loading for AI
   - Load AI settings from config.yaml
   - Read API key from environment variable
   - Support model selection (Haiku 3.5 for development, Sonnet for production)

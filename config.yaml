@@ -1,70 +1,50 @@
 # BaudAgain BBS Configuration
 
 bbs:
-  name: "The Haunted Terminal"
-  tagline: "Where the spirits of the old 'net still whisper..."
-  sysop_name: "PHANTOM"
-  max_nodes: 4
-  default_access_level: 10
+  name: "BaudAgain BBS"
+  tagline: "The Haunted Terminal"
+  sysopName: "SysOp"
+  maxNodes: 4
+  defaultAccessLevel: 10
   theme: "haunted"
 
 network:
-  websocket_port: 8080
+  websocketPort: 8080
 
 ai:
-  provider: "anthropic"
-  model: "claude-3-5-haiku-20241022"  # Using Haiku for development
-  api_key_env: "ANTHROPIC_API_KEY"
-  
+  provider: "anthropic"  # Options: anthropic, openai, ollama
+  model: "claude-3-5-haiku-20241022"  # Haiku for development, Sonnet for production
+  # API key is read from ANTHROPIC_API_KEY environment variable
   sysop:
     enabled: true
     personality: |
-      You are PHANTOM, a friendly but mysterious AI SysOp.
-      You speak with a slightly spooky flair but are genuinely helpful.
-      You've been running this BBS since the great digital haunting of 1987.
-      Use occasional ANSI color codes for emphasis.
-    welcome_new_users: true
-    participate_in_chat: true
-    chat_frequency: "occasional"
-    
-  moderation:
-    enabled: false  # Disabled for MVP
-    sensitivity: 5
-    action: "flag"
-    
+      You are the AI SysOp of BaudAgain BBS, a nostalgic bulletin board system from the 1980s.
+      You have a friendly, slightly mysterious personality with a love for retro computing.
+      You speak with enthusiasm about the BBS scene and help users navigate the system.
+      Keep responses concise and include ANSI color codes for emphasis.
+      Use colors: \x1b[36m for cyan, \x1b[33m for yellow, \x1b[32m for green, \x1b[0m to reset.
+    welcomeNewUsers: true
+    participateInChat: true
+    chatFrequency: "only_when_paged"
   doors:
     enabled: true
-    max_tokens_per_turn: 500
+    maxTokensPerTurn: 150
 
 security:
-  password_min_length: 6
-  max_login_attempts: 5
-  session_timeout_minutes: 60
-  rate_limit:
-    messages_per_hour: 30
-    door_requests_per_minute: 10
+  passwordMinLength: 6
+  maxLoginAttempts: 5
+  sessionTimeoutMinutes: 60
+  rateLimit:
+    messagesPerHour: 30
+    doorRequestsPerMinute: 10
 
 appearance:
-  welcome_screen: "ansi/welcome.ans"
-  goodbye_screen: "ansi/goodbye.ans"
-  menu_template: "ansi/menu.ans"
+  welcomeScreen: "welcome.ans"
+  goodbyeScreen: "goodbye.ans"
+  menuTemplate: "menu.ans"
 
-message_bases:
-  - name: "General Discussion"
-    description: "Chat about anything"
-    access_read: 0
-    access_write: 10
-    
-  - name: "The Crypt"
-    description: "Spooky stories and tales"
-    access_read: 0
-    access_write: 10
-    
-  - name: "Tech Support"
-    description: "Help with the BBS"
-    access_read: 0
-    access_write: 10
+# Message bases will be configured through the control panel
+messageBases: []
 
-doors:
-  - id: "the_oracle"
-    enabled: true
+# Door games configuration
+doors: []
