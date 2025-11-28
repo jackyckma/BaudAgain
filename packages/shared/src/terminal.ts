@@ -43,10 +43,10 @@ export interface WelcomeScreenContent extends TerminalContent {
 export interface MenuContent extends TerminalContent {
   type: ContentType.MENU;
   title: string;
-  options: MenuOption[];
+  options: MenuOptionDisplay[];
 }
 
-export interface MenuOption {
+export interface MenuOptionDisplay {
   key: string;
   label: string;
   description?: string;

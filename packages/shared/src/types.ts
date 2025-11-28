@@ -74,3 +74,17 @@ export interface DoorSession {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface Menu {
+  id: string;
+  title: string;
+  options: MenuOption[];
+}
+
+export interface MenuOption {
+  key: string;
+  label: string;
+  description?: string;
+  handler?: string;
+  accessLevel?: number;
+}

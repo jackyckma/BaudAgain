@@ -114,27 +114,40 @@ export class WebTerminalRenderer implements TerminalRenderer {
 
   private renderMenu(content: MenuContent): string {
     const lines: string[] = [];
+    const boxWidth = 62;
+    
+    // Helper to create a bordered line
+    const borderedLine = (text: string, color: string = ''): string => {
+      const centeredText = this.centerText(text, boxWidth);
+      const coloredText = color ? color + centeredText + this.colors.reset : centeredText;
+      return this.colors.cyan + '║' + this.colors.reset + coloredText + this.colors.cyan + '║' + this.colors.reset;
+    };
+    
+    const emptyLine = (): string => {
+      return this.colors.cyan + '║' + this.colors.reset + ' '.repeat(boxWidth) + this.colors.cyan + '║' + this.colors.reset;
+    };
     
     // Title
     lines.push('');
     lines.push(this.colors.cyan + '╔══════════════════════════════════════════════════════════════╗' + this.colors.reset);
-    const titleLine = this.centerText(content.title, 62);
-    lines.push(this.colors.cyan + '║' + this.colors.reset + this.colors.brightYellow + this.colors.bold + titleLine + this.colors.reset + this.colors.cyan + '║' + this.colors.reset);
+    lines.push(borderedLine(content.title, this.colors.brightYellow + this.colors.bold));
     lines.push(this.colors.cyan + '╠══════════════════════════════════════════════════════════════╣' + this.colors.reset);
+    lines.push(emptyLine());
     
     // Options
     content.options.forEach(option => {
       const keyPart = this.colors.brightCyan + `[${option.key}]` + this.colors.reset;
       const labelPart = this.colors.white + option.label + this.colors.reset;
-      const line = `  ${keyPart} ${labelPart}`;
-      lines.push(this.colors.cyan + '║' + this.colors.reset + this.padRight(line, 62) + this.colors.cyan + '║' + this.colors.reset);
+      const optionLine = `  ${keyPart} ${labelPart}`;
+      lines.push(this.colors.cyan + '║' + this.colors.reset + this.padRight(optionLine, boxWidth) + this.colors.cyan + '║' + this.colors.reset);
       
       if (option.description) {
         const descLine = `      ${this.colors.gray}${option.description}${this.colors.reset}`;
-        lines.push(this.colors.cyan + '║' + this.colors.reset + this.padRight(descLine, 62) + this.colors.cyan + '║' + this.colors.reset);
+        lines.push(this.colors.cyan + '║' + this.colors.reset + this.padRight(descLine, boxWidth) + this.colors.cyan + '║' + this.colors.reset);
       }
     });
     
+    lines.push(emptyLine());
     lines.push(this.colors.cyan + '╚══════════════════════════════════════════════════════════════╝' + this.colors.reset);
     lines.push('');
     

@@ -69,7 +69,7 @@
   - **Validates: Requirements 1.2**
 
 - [ ] 5. Implement basic menu system
-- [ ] 5.1 Create menu handler with simple navigation
+- [x] 5.1 Create menu handler with simple navigation
   - Implement Menu and MenuOption interfaces
   - Create main menu with static options
   - Handle single-character command input

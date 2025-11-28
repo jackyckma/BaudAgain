@@ -9,7 +9,7 @@ import { UserRepository } from './db/repositories/UserRepository.js';
 import { SessionManager } from './session/SessionManager.js';
 import { WebTerminalRenderer } from './terminal/WebTerminalRenderer.js';
 import { BBSCore } from './core/BBSCore.js';
-import { EchoHandler } from './handlers/EchoHandler.js';
+import { MenuHandler } from './handlers/MenuHandler.js';
 import type { WelcomeScreenContent, PromptContent } from '@baudagain/shared';
 
 const server = Fastify({
@@ -37,7 +37,7 @@ const terminalRenderer = new WebTerminalRenderer();
 
 // Initialize BBS Core and register handlers
 const bbsCore = new BBSCore(sessionManager, server.log);
-bbsCore.registerHandler(new EchoHandler());
+bbsCore.registerHandler(new MenuHandler(terminalRenderer));
 
 // Register plugins
 await server.register(cors, {
@@ -76,9 +76,11 @@ server.register(async function (fastify) {
       const welcomeScreen = terminalRenderer.render(welcomeContent);
       await connection.send(welcomeScreen);
       
+      // Send initial prompt - for now, go straight to menu
+      // (Authentication will be added later)
       const promptContent: PromptContent = {
         type: 'prompt',
-        text: '\r\nEnter your handle, or type NEW to register: ',
+        text: '\r\nPress ENTER to continue...',
       };
       await connection.send(terminalRenderer.render(promptContent));
     } catch (err) {
