@@ -530,7 +530,7 @@
   - **Property 57: AI request rate limiting**
   - **Validates: Requirements 15.3**
 
-- [-] 21. Checkpoint - Verify Milestone 4
+- [x] 21. Checkpoint - Verify Milestone 4
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Milestone 5: Polish & Message Bases
