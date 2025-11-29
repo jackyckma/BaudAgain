@@ -202,3 +202,72 @@ BaudAgain is an AI-enhanced Bulletin Board System (BBS) that resurrects the inti
 3. WHEN a caller makes AI requests THEN the System SHALL limit AI door game requests to 10 per minute per user
 4. WHEN user input is received THEN the System SHALL sanitize input to prevent injection attacks
 5. WHEN passwords are stored THEN the System SHALL use bcrypt with a cost factor of 10 for hashing
+
+---
+
+## Milestone 6: Hybrid Architecture Requirements
+
+### Requirement 16: REST API Foundation
+
+**User Story:** As a developer, I want a comprehensive REST API for all BBS operations, so that I can test, integrate, and build applications on top of the BBS.
+
+#### Acceptance Criteria
+
+1. WHEN a client needs to authenticate THEN the System SHALL provide REST endpoints for login, registration, and token refresh AND SHALL use JWT tokens with proper expiration AND SHALL maintain backward compatibility with WebSocket authentication
+2. WHEN a client needs to perform BBS operations THEN the System SHALL provide REST endpoints for user management, message base operations, message operations, and door game operations AND SHALL return structured JSON responses AND SHALL use standard HTTP status codes
+3. WHEN API errors occur THEN the System SHALL return consistent error responses with appropriate HTTP status codes AND SHALL include error messages and details
+4. WHEN API requests are made THEN the System SHALL validate authentication tokens AND SHALL enforce rate limiting AND SHALL log all API access
+
+### Requirement 17: WebSocket Notification System
+
+**User Story:** As a BBS user, I want to receive real-time notifications about system events, so that I stay informed about new messages and user activity.
+
+#### Acceptance Criteria
+
+1. WHEN events occur that affect connected users THEN the System SHALL broadcast notifications via WebSocket including new messages in subscribed bases, user join/leave events, system announcements, and door game updates AND SHALL allow clients to subscribe to specific event types
+2. WHEN sending notifications THEN the System SHALL use structured JSON format AND SHALL include event type, timestamp, and relevant data AND SHALL handle client disconnections gracefully AND SHALL not require notifications for system functionality
+3. WHEN a client subscribes to events THEN the System SHALL only send relevant notifications AND SHALL support multiple subscription filters AND SHALL handle subscription changes dynamically
+4. WHEN notification delivery fails THEN the System SHALL log the failure AND SHALL not block other operations AND SHALL retry for critical notifications
+
+### Requirement 18: Hybrid Client Support
+
+**User Story:** As a terminal client user, I want the same BBS experience while benefiting from improved architecture, so that I get reliability and performance without losing functionality.
+
+#### Acceptance Criteria
+
+1. WHEN the terminal client operates in hybrid mode THEN it SHALL use REST API for all user actions AND SHALL use WebSocket for real-time notifications AND SHALL maintain the same user experience as WebSocket-only mode AND SHALL gracefully fallback to WebSocket-only if REST API is unavailable
+2. WHEN implementing new features THEN the System SHALL implement REST API first AND SHALL add WebSocket notifications as needed AND SHALL ensure all operations are testable via REST API AND SHALL maintain consistent data models between REST and WebSocket
+3. WHEN switching between REST and WebSocket modes THEN the System SHALL maintain session state AND SHALL not lose user data AND SHALL provide seamless transition
+4. WHEN API calls fail THEN the terminal client SHALL retry with exponential backoff AND SHALL fall back to WebSocket commands if REST is unavailable AND SHALL inform the user of degraded functionality
+
+### Requirement 19: API Documentation and Testing
+
+**User Story:** As a developer integrating with the BBS, I want comprehensive API documentation and testing tools, so that I can quickly understand and use the API.
+
+#### Acceptance Criteria
+
+1. WHEN developers need to use the API THEN the System SHALL provide OpenAPI/Swagger documentation AND SHALL include example requests and responses AND SHALL document authentication requirements AND SHALL provide integration examples
+2. WHEN testing the system THEN all BBS operations SHALL be testable via REST API AND SHALL support automated testing with standard HTTP tools AND SHALL provide test data fixtures AND SHALL include performance benchmarks
+3. WHEN API changes are made THEN the System SHALL update documentation automatically AND SHALL maintain API versioning AND SHALL provide migration guides for breaking changes
+4. WHEN developers explore the API THEN the System SHALL provide interactive API documentation AND SHALL include code examples in multiple languages AND SHALL document rate limits and quotas
+
+### Requirement 20: Mobile and Third-Party Support
+
+**User Story:** As a mobile app developer, I want a stable API foundation, so that I can build native mobile applications for the BBS.
+
+#### Acceptance Criteria
+
+1. WHEN building mobile applications THEN the REST API SHALL support mobile app development AND SHALL provide efficient data formats AND SHALL support offline operation where possible AND SHALL include mobile-specific optimizations
+2. WHEN third parties want to integrate THEN the System SHALL provide stable API versioning AND SHALL support API keys for external access AND SHALL include rate limiting for external clients AND SHALL provide webhook support for external notifications
+3. WHEN mobile apps make requests THEN the System SHALL optimize response sizes AND SHALL support pagination for large datasets AND SHALL provide delta updates where possible AND SHALL minimize battery impact
+4. WHEN external integrations are created THEN the System SHALL provide developer portal AND SHALL include API key management AND SHALL monitor API usage AND SHALL provide usage analytics
+
+---
+
+## Summary
+
+These requirements define a complete, modern BBS system that combines the nostalgic feel of classic bulletin board systems with modern technology, AI integration, and excellent user experience.
+
+Milestone 6 transforms the system into a modern, API-first architecture while maintaining the authentic BBS experience. This enables full testability, mobile app development, and third-party integrations while preserving the real-time, interactive nature that makes BBSs special.
+
+The system provides terminal-based access for the authentic BBS experience, a web-based control panel for modern administration, and a comprehensive REST API for testing and integration.

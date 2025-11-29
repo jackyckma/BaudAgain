@@ -1582,43 +1582,86 @@ describe('Handle Validation Property', () => {
 
 ---
 
-## Next Steps: Milestone 4
+## Milestone Roadmap
 
-### What We'll Build
+### ✅ Milestone 1-4: Foundation Complete
+- ✅ Basic BBS functionality
+- ✅ User authentication system
+- ✅ AI integration (chat + Oracle door)
+- ✅ Door game framework
 
-**Door Game Framework:**
-- Door interface
-- DoorHandler
-- Door session management
+### 🔄 Milestone 5: Polish & Message Bases (Current)
+**Goal:** Complete, polished BBS with all core features
 
-**The Oracle:**
-- OracleDoor implementation
-- Mystical AI personality
-- 150 character responses
-- Atmospheric presentation
+**What We're Building:**
+- Message base system (forums)
+- Control panel features (user/base management)
+- Input sanitization and security
+- Graceful shutdown handling
+- UI polish and refinements
 
-### Architecture Impact
-
-**New Components:**
+**Architecture Impact:**
 ```
-server/src/doors/
-├── Door.ts
-└── OracleDoor.ts
-
-server/src/handlers/
-└── DoorHandler.ts
+server/src/
+├── db/repositories/
+│   ├── MessageBaseRepository.ts  ✅ Complete
+│   └── MessageRepository.ts      ✅ Complete
+├── handlers/
+│   └── MessageHandler.ts         🔄 In Progress
+└── services/
+    └── MessageService.ts         ⏳ Planned
 ```
 
-**Integration Points:**
-- BBSCore (register DoorHandler)
-- MenuHandler (add "G" option)
-- AIService (Oracle prompts)
-- SessionManager (door state)
+**Status:** 25% complete - repositories done, handler in progress
+
+### 📋 Milestone 6: Hybrid Architecture (Planned)
+**Goal:** Transform to industry-standard REST + WebSocket hybrid architecture
+
+**What We'll Build:**
+- REST API for all BBS operations
+- WebSocket notification system
+- Hybrid terminal client (REST actions + WebSocket notifications)
+- API documentation (OpenAPI/Swagger)
+- Mobile app foundation
+
+**Architecture Evolution:**
+```
+Current (Milestone 5):
+Terminal → WebSocket → Handlers → Services → Repositories
+
+Hybrid (Milestone 6):
+Terminal → REST API → Services → Repositories
+        ↓
+     WebSocket (notifications only)
+
+Control Panel → REST API → Services → Repositories
+             ↓
+          WebSocket (notifications)
+
+Mobile App → REST API → Services → Repositories
+          ↓
+       WebSocket (notifications)
+```
+
+**Benefits:**
+- ✅ Full testability via REST API (curl, Postman)
+- ✅ Mobile app development ready
+- ✅ Third-party integrations enabled
+- ✅ Industry standard architecture
+- ✅ Maintains authentic BBS experience
+- ✅ Same service layer (no duplication)
+
+**Why After Milestone 5:**
+- Better context: Know exactly what APIs to build
+- Lower risk: Refactor working system incrementally
+- Easier testing: Compare REST vs WebSocket behavior
+- Services already well-designed for reuse
 
 **No Breaking Changes:**
-- Existing handlers unaffected
-- Existing services reused
-- Clean integration via Chain of Responsibility
+- Existing services reused (already well-designed!)
+- WebSocket handlers kept as fallback
+- Same user experience
+- Incremental migration path
 
 ---
 

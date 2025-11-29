@@ -661,6 +661,204 @@
   - Test complete user flows end-to-end
   - Prepare demo scenarios
 
+---
+
+## Milestone 6: Hybrid Architecture (REST + WebSocket)
+
+**Goal:** Refactor to industry-standard hybrid architecture for better testability and API access while maintaining real-time BBS experience.
+
+**Duration:** 2-3 days  
+**Prerequisites:** Milestone 5 complete
+
+### Task 29: Design REST API
+- [ ] 29.1 Design REST API endpoints for all BBS operations
+  - Define endpoint structure (auth, users, messages, doors)
+  - Plan request/response formats
+  - Document error handling patterns
+  - _Requirements: 16.2_
+
+- [ ] 29.2 Define API authentication strategy
+  - Design JWT token structure
+  - Plan token refresh mechanism
+  - Maintain backward compatibility with WebSocket auth
+  - _Requirements: 16.1_
+
+- [ ] 29.3 Create OpenAPI/Swagger documentation
+  - Write OpenAPI 3.0 specification
+  - Document all endpoints with examples
+  - Include authentication requirements
+  - _Requirements: 19.1_
+
+- [ ] 29.4 Plan WebSocket notification events
+  - Define notification event types
+  - Design event payload structures
+  - Plan subscription mechanism
+  - _Requirements: 17.1_
+
+### Task 30: Implement Core REST API
+- [ ] 30.1 Add authentication endpoints
+  - POST /api/auth/login (login with credentials)
+  - POST /api/auth/register (create new account)
+  - POST /api/auth/refresh (refresh JWT token)
+  - GET /api/auth/me (get current user)
+  - _Requirements: 16.1_
+
+- [ ] 30.2 Add user management endpoints
+  - GET /api/users (list users - admin only)
+  - GET /api/users/:id (get user profile)
+  - PATCH /api/users/:id (update user profile)
+  - _Requirements: 16.2_
+
+- [ ] 30.3 Add message base endpoints
+  - GET /api/message-bases (list all bases)
+  - GET /api/message-bases/:id (get base details)
+  - POST /api/message-bases (create base - admin only)
+  - _Requirements: 16.2_
+
+- [ ] 30.4 Add message endpoints
+  - GET /api/message-bases/:id/messages (list messages)
+  - GET /api/messages/:id (get message details)
+  - POST /api/message-bases/:id/messages (post new message)
+  - POST /api/messages/:id/replies (post reply)
+  - _Requirements: 16.2_
+
+- [ ]* 30.5 Write property tests for REST API
+  - **Property 59: REST API authentication**
+  - **Property 60: REST API CRUD operations**
+  - **Validates: Requirements 16.1, 16.2**
+
+### Task 31: Implement Door Game REST API
+- [ ] 31.1 Add door game endpoints
+  - GET /api/doors (list available doors)
+  - POST /api/doors/:id/enter (enter door game)
+  - POST /api/doors/:id/input (send input to door)
+  - POST /api/doors/:id/exit (exit door game)
+  - _Requirements: 16.2_
+
+- [ ] 31.2 Add door session management via API
+  - Maintain door state in session
+  - Handle door timeouts
+  - Support concurrent door sessions
+  - _Requirements: 16.2_
+
+- [ ] 31.3 Maintain door state persistence
+  - Ensure door state persists across API calls
+  - Support session recovery
+  - _Requirements: 16.2_
+
+### Task 32: Add WebSocket Notification System
+- [ ] 32.1 Design notification event types
+  - Define event schema (type, timestamp, data)
+  - Create event type constants
+  - Document event payloads
+  - _Requirements: 17.1_
+
+- [ ] 32.2 Implement server-side notification broadcasting
+  - Create NotificationService
+  - Add event subscription mechanism
+  - Implement broadcast to subscribed clients
+  - _Requirements: 17.1, 17.2_
+
+- [ ] 32.3 Add real-time updates for new messages
+  - Broadcast new message events
+  - Include message base and message data
+  - Filter by user subscriptions
+  - _Requirements: 17.1_
+
+- [ ] 32.4 Add real-time updates for user activity
+  - Broadcast user join/leave events
+  - Send system announcements
+  - Handle door game updates
+  - _Requirements: 17.1_
+
+- [ ]* 32.5 Write property tests for notifications
+  - **Property 61: Notification delivery**
+  - **Validates: Requirements 17.1, 17.2**
+
+### Task 33: Refactor Terminal Client
+- [ ] 33.1 Update terminal to use REST API for actions
+  - Replace WebSocket commands with REST API calls
+  - Maintain same user experience
+  - Handle API errors gracefully
+  - _Requirements: 18.1_
+
+- [ ] 33.2 Keep WebSocket for real-time notifications
+  - Subscribe to relevant notification events
+  - Update UI based on notifications
+  - Handle reconnection
+  - _Requirements: 18.1_
+
+- [ ] 33.3 Maintain existing BBS user experience
+  - Ensure no visible changes to users
+  - Keep same response times
+  - Preserve ANSI rendering
+  - _Requirements: 18.1_
+
+- [ ] 33.4 Add graceful fallback to WebSocket-only mode
+  - Detect REST API unavailability
+  - Fall back to WebSocket commands
+  - Log fallback events
+  - _Requirements: 18.1_
+
+### Task 34: Testing and Validation
+- [ ] 34.1 Create REST API test suite
+  - Write integration tests for all endpoints
+  - Test authentication flows
+  - Test error handling
+  - _Requirements: 19.2_
+
+- [ ] 34.2 Test all operations via curl/Postman
+  - Create Postman collection
+  - Document curl examples
+  - Verify all endpoints work
+  - _Requirements: 19.2_
+
+- [ ] 34.3 Validate WebSocket notifications work
+  - Test notification delivery
+  - Verify subscription mechanism
+  - Test concurrent clients
+  - _Requirements: 17.2_
+
+- [ ] 34.4 Performance testing (REST vs WebSocket)
+  - Benchmark API response times
+  - Compare with WebSocket performance
+  - Identify bottlenecks
+  - _Requirements: 19.2_
+
+### Task 35: Documentation and Examples
+- [ ] 35.1 Create API documentation
+  - Complete OpenAPI specification
+  - Generate API reference docs
+  - Add authentication guide
+  - _Requirements: 19.1_
+
+- [ ] 35.2 Add example API usage
+  - Create code examples (curl, JavaScript, Python)
+  - Document common workflows
+  - Add troubleshooting guide
+  - _Requirements: 19.1_
+
+- [ ] 35.3 Create mobile app development guide
+  - Document mobile app architecture
+  - Provide React Native example
+  - Include best practices
+  - _Requirements: 20.1_
+
+- [ ] 35.4 Update architecture documentation
+  - Update ARCHITECTURE.md with hybrid design
+  - Document API patterns
+  - Explain notification system
+  - _Requirements: 18.2_
+
+### Task 36: Final checkpoint - Hybrid architecture verification
+  - Ensure all tests pass, ask the user if questions arise.
+  - Verify hybrid architecture works correctly
+  - Validate all features work via both REST and WebSocket
+  - Performance and security validation
+  - Complete system documentation
+
+---
+
 ## Post-MVP Enhancements (P1 - Nice to Have)
 
 - [ ] 29. Add Phantom Quest text adventure door game
