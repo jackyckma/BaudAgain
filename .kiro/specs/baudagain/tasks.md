@@ -492,20 +492,20 @@
   - **Validates: Requirements 7.5**
 
 - [ ] 19. Implement The Oracle door game
-- [-] 19.1 Create OracleDoor class
+- [x] 19.1 Create OracleDoor class
   - Implement Door interface for The Oracle
   - Create atmospheric introduction screen
   - Handle question input from user
   - _Requirements: 7.2_
 
-- [ ] 19.2 Integrate AI for Oracle responses
+- [x] 19.2 Integrate AI for Oracle responses
   - Create Oracle system prompt with mystical personality
   - Generate responses using AI provider
   - Format responses with mystical symbols and dramatic pauses
   - Enforce 150 character limit
   - _Requirements: 7.3, 7.4_
 
-- [ ] 19.3 Add Oracle to door games menu
+- [x] 19.3 Add Oracle to door games menu
   - Register Oracle door with DoorHandler
   - Display in door games list
   - Handle entry and exit

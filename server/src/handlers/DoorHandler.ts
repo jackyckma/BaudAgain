@@ -38,8 +38,9 @@ export class DoorHandler implements CommandHandler {
       return true;
     }
     
-    // Handle if user selects door games from menu
-    if (command.toUpperCase() === 'D' && session.state === SessionState.IN_MENU) {
+    // Handle if user selects door games from menu (authenticated or in_menu state)
+    if (command.toUpperCase() === 'D' && 
+        (session.state === SessionState.IN_MENU || session.state === SessionState.AUTHENTICATED)) {
       return true;
     }
     
