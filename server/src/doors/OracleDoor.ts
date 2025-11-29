@@ -8,13 +8,18 @@
 import type { Door } from './Door.js';
 import type { Session } from '@baudagain/shared';
 import type { AIService } from '../ai/AIService.js';
+import { RateLimiter } from '../utils/RateLimiter.js';
 
 export class OracleDoor implements Door {
   id = 'oracle';
   name = 'The Oracle';
   description = 'Seek wisdom from the mystical Oracle';
+  private rateLimiter: RateLimiter;
   
-  constructor(private aiService?: AIService) {}
+  constructor(private aiService?: AIService) {
+    // 10 requests per minute per user
+    this.rateLimiter = new RateLimiter(10, 60000);
+  }
   
   /**
    * Enter The Oracle's chamber
@@ -66,6 +71,13 @@ export class OracleDoor implements Door {
     // Empty input
     if (!trimmedInput) {
       return '\r\n\x1b[35m"Speak your question clearly..."\x1b[0m\r\n\r\n' +
+             'Enter your question (or type \x1b[33mQ\x1b[0m to leave): ';
+    }
+    
+    // Check rate limit
+    if (session.userId && !this.rateLimiter.isAllowed(session.userId)) {
+      const resetTime = this.rateLimiter.getResetTime(session.userId);
+      return '\r\n\x1b[35m🔮 "The spirits grow weary... Return in ' + resetTime + ' seconds."\x1b[0m\r\n\r\n' +
              'Enter your question (or type \x1b[33mQ\x1b[0m to leave): ';
     }
     
