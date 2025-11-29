@@ -95,6 +95,10 @@ const handlerDeps = {
 
 // Register AuthHandler first (takes precedence for CONNECTED/AUTHENTICATING states)
 bbsCore.registerHandler(new AuthHandler(userService, handlerDeps));
+// Register DoorHandler before MenuHandler (takes precedence for door game commands)
+const { DoorHandler } = await import('./handlers/DoorHandler.js');
+const doorHandler = new DoorHandler(handlerDeps);
+bbsCore.registerHandler(doorHandler);
 // Register MenuHandler for authenticated users
 bbsCore.registerHandler(new MenuHandler(handlerDeps));
 

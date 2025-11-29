@@ -158,7 +158,9 @@ export class MenuHandler implements CommandHandler {
         return this.displayMenuWithMessage('main', '\r\nMessage Bases coming soon!\r\n');
       
       case 'D':
-        return this.displayMenuWithMessage('main', '\r\nDoor Games coming soon!\r\n');
+        // Door Games are handled by DoorHandler
+        // This case should not be reached if DoorHandler is registered before MenuHandler
+        return this.displayMenuWithMessage('main', '\r\nDoor Games - please try again.\r\n');
       
       case 'P':
         return this.startPageSysOp(session);
