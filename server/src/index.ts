@@ -102,7 +102,7 @@ await server.register(rateLimit, {
   max: 100, // 100 requests
   timeWindow: '15 minutes', // per 15 minutes
   cache: 10000, // Cache size
-  // Note: allowList removed for testing - add back ['127.0.0.1'] for local development if needed
+  allowList: ['127.0.0.1', '::1'], // Whitelist localhost (IPv4 and IPv6) for development
   addHeaders: {
     'x-ratelimit-limit': true,
     'x-ratelimit-remaining': true,
@@ -116,7 +116,7 @@ await server.register(rateLimit, {
     };
   },
 });
-server.log.info('Rate limiting enabled: 100 requests per 15 minutes');
+server.log.info('Rate limiting enabled: 100 requests per 15 minutes (localhost excluded)');
 
 await server.register(websocket);
 
