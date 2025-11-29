@@ -536,7 +536,7 @@
 ## Milestone 5: Polish & Message Bases
 
 - [ ] 22. Implement message base system
-- [ ] 22.1 Create message repositories
+- [-] 22.1 Create message repositories
   - Implement MessageBaseRepository for message base CRUD
   - Implement MessageRepository for message CRUD
   - Add methods for listing, reading, and posting messages
