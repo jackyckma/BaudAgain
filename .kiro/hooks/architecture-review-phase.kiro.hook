@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "name": "Architecture Review on Phase Completion",
-  "description": "Monitors tasks.md\n\nOn file changed, check if a major phase is completed. On completion of a major phase, ask the agent to analyzes overall architecture compliance, design patterns, best practices, and identifies issues like shortcuts, direct module linkages, redundant functions, and poor abstractions. Generates maintainability-focused suggestions.",
+  "description": "Monitors tasks.md\n\nOn file changed, check if a major phase is completed. On completion of a major phase, ask the agent to analyzes overall architecture compliance, design patterns, best practices, and identifies issues like shortcuts, direct module linkages, redundant functions, and poor abstractions. Besides \"in-code\" architecture, please also keep the repo/file architecture clean and structured, which includes cleaning/archiving of unneeded files and documents, etc. So the overall goal is to keep the project in a easy to maintain state.",
   "version": "1",
   "when": {
     "type": "fileEdited",

@@ -9,6 +9,46 @@ export enum SessionState {
   DISCONNECTED = 'disconnected',
 }
 
+/**
+ * Authentication Flow State
+ * Tracks the state of user registration or login process
+ */
+export interface AuthFlowState {
+  flow: 'registration' | 'login';
+  step: 'handle' | 'password';
+  handle?: string;
+  loginAttempts?: number;
+}
+
+/**
+ * Menu Flow State
+ * Tracks the state of menu interactions
+ */
+export interface MenuFlowState {
+  pagingSysOp?: boolean;
+  question?: string;
+}
+
+/**
+ * Door Game Flow State
+ * Tracks the state of door game sessions
+ */
+export interface DoorFlowState {
+  doorId?: string;
+  gameState?: any;
+  history?: any[];
+}
+
+/**
+ * Typed Session Data
+ * Provides type safety for session-specific data
+ */
+export interface SessionData {
+  auth?: AuthFlowState;
+  menu?: MenuFlowState;
+  door?: DoorFlowState;
+}
+
 export interface Session {
   id: string;
   connectionId: string;
@@ -17,7 +57,7 @@ export interface Session {
   state: SessionState;
   currentMenu: string;
   lastActivity: Date;
-  data: Record<string, any>;
+  data: SessionData;
 }
 
 export interface User {

@@ -457,6 +457,7 @@
   - Extract common rendering utilities
   - Create shared base class or utility functions
   - _Architecture Review: P1 - Some duplication in renderers_
+  - _Status: BaseTerminalRenderer created but not yet used by WebTerminalRenderer and ANSITerminalRenderer_
 
 - [ ]* 17.8.4 Write unit tests for shared utilities
   - Test validation utilities
@@ -464,7 +465,7 @@
   - Test rendering utilities
   - _Architecture Review: P1 - Ensure utilities work correctly_
 
-- [ ] 17.9. Checkpoint - Verify Milestone 3.5
+- [x] 17.9. Checkpoint - Verify Milestone 3.5
   - Ensure all tests pass, ask the user if questions arise.
   - Verify JWT authentication works in control panel
   - Verify rate limiting is enforced
@@ -473,7 +474,7 @@
 ## Milestone 4: Door Game (The Oracle)
 
 - [ ] 18. Implement door game framework
-- [ ] 18.1 Create Door interface and DoorHandler
+- [-] 18.1 Create Door interface and DoorHandler
   - Define Door interface with enter, processInput, exit methods
   - Implement DoorHandler to manage door game lifecycle
   - Add door game menu to main menu

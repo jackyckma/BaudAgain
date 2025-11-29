@@ -1,9 +1,10 @@
 import type { CommandHandler } from '../core/CommandHandler.js';
-import type { Session, SessionState } from '@baudagain/shared';
-import type { TerminalRenderer, MessageContent, PromptContent, ErrorContent, MenuContent, RawANSIContent, EchoControlContent } from '@baudagain/shared';
+import type { Session, SessionState, AuthFlowState } from '@baudagain/shared';
+import type { TerminalRenderer, MessageContent, PromptContent, ErrorContent, MenuContent, EchoControlContent } from '@baudagain/shared';
 import { ContentType } from '@baudagain/shared';
-import type { SessionManager } from '../session/SessionManager.js';
 import type { UserService } from '../services/UserService.js';
+import type { HandlerDependencies } from './HandlerDependencies.js';
+import { AIResponseHelper } from '../utils/AIResponseHelper.js';
 
 const MAX_LOGIN_ATTEMPTS = 5;
 
@@ -17,9 +18,7 @@ const MAX_LOGIN_ATTEMPTS = 5;
 export class AuthHandler implements CommandHandler {
   constructor(
     private userService: UserService,
-    private sessionManager: SessionManager,
-    private renderer: TerminalRenderer,
-    private aiSysOp?: any  // Optional AI SysOp for welcome messages
+    private deps: HandlerDependencies
   ) {}
 
   canHandle(command: string, session: Session): boolean {
@@ -34,7 +33,7 @@ export class AuthHandler implements CommandHandler {
     const upperCommand = command.toUpperCase();
 
     // Check if we're in the middle of registration/login flow
-    if (session.data.authFlow) {
+    if (session.data.auth) {
       return this.handleAuthFlow(command, session);
     }
 
@@ -51,12 +50,16 @@ export class AuthHandler implements CommandHandler {
    * Start registration flow
    */
   private startRegistration(session: Session): string {
-    this.sessionManager.updateSession(session.id, {
+    const authState: AuthFlowState = {
+      flow: 'registration',
+      step: 'handle',
+    };
+
+    this.deps.sessionManager.updateSession(session.id, {
       state: 'authenticating' as SessionState,
       data: {
         ...session.data,
-        authFlow: 'registration',
-        authStep: 'handle',
+        auth: authState,
       },
     });
 
@@ -71,21 +74,25 @@ export class AuthHandler implements CommandHandler {
       text: 'Choose a handle (3-20 characters): ',
     };
 
-    return this.renderer.render(message) + this.renderer.render(prompt);
+    return this.deps.renderer.render(message) + this.deps.renderer.render(prompt);
   }
 
   /**
    * Start login flow
    */
   private startLogin(handle: string, session: Session): string {
-    this.sessionManager.updateSession(session.id, {
+    const authState: AuthFlowState = {
+      flow: 'login',
+      step: 'password',
+      handle: handle,
+      loginAttempts: session.data.auth?.loginAttempts || 0,
+    };
+
+    this.deps.sessionManager.updateSession(session.id, {
       state: 'authenticating' as SessionState,
       data: {
         ...session.data,
-        authFlow: 'login',
-        authStep: 'password',
-        handle: handle,
-        loginAttempts: (session.data.loginAttempts || 0),
+        auth: authState,
       },
     });
 
@@ -100,19 +107,23 @@ export class AuthHandler implements CommandHandler {
       text: 'Password: ',
     };
 
-    return this.renderer.render(echoOff) + this.renderer.render(prompt);
+    return this.deps.renderer.render(echoOff) + this.deps.renderer.render(prompt);
   }
 
   /**
    * Handle authentication flow steps
    */
   private async handleAuthFlow(command: string, session: Session): Promise<string> {
-    const { authFlow, authStep } = session.data;
+    const authState = session.data.auth;
 
-    if (authFlow === 'registration') {
-      return this.handleRegistrationFlow(command, session, authStep);
-    } else if (authFlow === 'login') {
-      return this.handleLoginFlow(command, session, authStep);
+    if (!authState) {
+      return 'Authentication error. Please try again.\r\n';
+    }
+
+    if (authState.flow === 'registration') {
+      return this.handleRegistrationFlow(command, session, authState.step);
+    } else if (authState.flow === 'login') {
+      return this.handleLoginFlow(command, session, authState.step);
     }
 
     return 'Authentication error. Please try again.\r\n';
@@ -124,7 +135,7 @@ export class AuthHandler implements CommandHandler {
   private async handleRegistrationFlow(
     command: string,
     session: Session,
-    step: string
+    step: 'handle' | 'password'
   ): Promise<string> {
     if (step === 'handle') {
       // Validate handle using UserService
@@ -138,7 +149,7 @@ export class AuthHandler implements CommandHandler {
           type: ContentType.PROMPT,
           text: 'Choose a handle (3-20 characters): ',
         };
-        return this.renderer.render(error) + this.renderer.render(prompt);
+        return this.deps.renderer.render(error) + this.deps.renderer.render(prompt);
       }
 
       // Check if handle is available using UserService
@@ -152,15 +163,20 @@ export class AuthHandler implements CommandHandler {
           type: ContentType.PROMPT,
           text: 'Choose a handle (3-20 characters): ',
         };
-        return this.renderer.render(error) + this.renderer.render(prompt);
+        return this.deps.renderer.render(error) + this.deps.renderer.render(prompt);
       }
 
       // Handle is valid, move to password
-      this.sessionManager.updateSession(session.id, {
+      const authState: AuthFlowState = {
+        flow: 'registration',
+        step: 'password',
+        handle: command,
+      };
+
+      this.deps.sessionManager.updateSession(session.id, {
         data: {
           ...session.data,
-          handle: command,
-          authStep: 'password',
+          auth: authState,
         },
       });
 
@@ -174,7 +190,7 @@ export class AuthHandler implements CommandHandler {
         type: ContentType.PROMPT,
         text: 'Choose a password (min 6 characters): ',
       };
-      return this.renderer.render(echoOff) + this.renderer.render(prompt);
+      return this.deps.renderer.render(echoOff) + this.deps.renderer.render(prompt);
     }
 
     if (step === 'password') {
@@ -196,11 +212,15 @@ export class AuthHandler implements CommandHandler {
           type: ContentType.PROMPT,
           text: 'Choose a password (min 6 characters): ',
         };
-        return this.renderer.render(error) + this.renderer.render(echoOff) + this.renderer.render(prompt);
+        return this.deps.renderer.render(error) + this.deps.renderer.render(echoOff) + this.deps.renderer.render(prompt);
       }
 
       // Create user using UserService
-      const handle = session.data.handle;
+      const handle = session.data.auth?.handle;
+      if (!handle) {
+        return 'Registration error: handle not found.\r\n';
+      }
+
       const user = await this.userService.createUser({
         handle,
         password: command,
@@ -213,7 +233,7 @@ export class AuthHandler implements CommandHandler {
       };
 
       // Update session to authenticated state and set current menu to main
-      this.sessionManager.updateSession(session.id, {
+      this.deps.sessionManager.updateSession(session.id, {
         state: 'authenticated' as SessionState,
         userId: user.id,
         handle: user.handle,
@@ -221,36 +241,13 @@ export class AuthHandler implements CommandHandler {
         data: {},
       });
 
-      // Generate AI welcome message if available
-      let welcomeOutput = '';
-      
-      if (this.aiSysOp) {
-        try {
-          const aiWelcome = await this.aiSysOp.generateWelcome(user.handle);
-          // AI messages already contain ANSI codes, use raw ANSI content
-          const aiContent: RawANSIContent = {
-            type: ContentType.RAW_ANSI,
-            ansi: `\r\n${aiWelcome}\r\n`,
-          };
-          welcomeOutput = this.renderer.render(aiContent);
-        } catch (error) {
-          // Fall back to default message if AI fails
-          console.error('AI SysOp welcome failed:', error);
-          const fallback: MessageContent = {
-            type: ContentType.MESSAGE,
-            text: `\r\nWelcome to BaudAgain BBS, ${user.handle}!\r\nYou are now logged in.\r\n\r\n`,
-            style: 'success',
-          };
-          welcomeOutput = this.renderer.render(fallback);
-        }
-      } else {
-        const fallback: MessageContent = {
-          type: ContentType.MESSAGE,
-          text: `\r\nWelcome to BaudAgain BBS, ${user.handle}!\r\nYou are now logged in.\r\n\r\n`,
-          style: 'success',
-        };
-        welcomeOutput = this.renderer.render(fallback);
-      }
+      // Generate AI welcome message using helper
+      const welcomeOutput = await AIResponseHelper.renderAIResponse(
+        this.deps.aiSysOp,
+        () => this.deps.aiSysOp!.generateWelcome(user.handle),
+        this.deps.renderer,
+        `\r\nWelcome to BaudAgain BBS, ${user.handle}!\r\nYou are now logged in.\r\n\r\n`
+      );
 
       // Show main menu immediately after registration
       const menuContent: MenuContent = {
@@ -265,7 +262,7 @@ export class AuthHandler implements CommandHandler {
         ],
       };
 
-      return this.renderer.render(echoOn) + welcomeOutput + this.renderer.render(menuContent) + '\r\nCommand: ';
+      return this.deps.renderer.render(echoOn) + welcomeOutput + this.deps.renderer.render(menuContent) + '\r\nCommand: ';
     }
 
     return 'Registration error.\r\n';
@@ -277,10 +274,13 @@ export class AuthHandler implements CommandHandler {
   private async handleLoginFlow(
     command: string,
     session: Session,
-    step: string
+    step: 'handle' | 'password'
   ): Promise<string> {
     if (step === 'password') {
-      const handle = session.data.handle;
+      const handle = session.data.auth?.handle;
+      if (!handle) {
+        return 'Login error: handle not found.\r\n';
+      }
       
       // Authenticate user using UserService
       const user = await this.userService.authenticateUser(handle, command);
@@ -298,7 +298,7 @@ export class AuthHandler implements CommandHandler {
       };
 
       // Update session to authenticated state and set current menu to main
-      this.sessionManager.updateSession(session.id, {
+      this.deps.sessionManager.updateSession(session.id, {
         state: 'authenticated' as SessionState,
         userId: user.id,
         handle: user.handle,
@@ -306,48 +306,20 @@ export class AuthHandler implements CommandHandler {
         data: {},
       });
 
-      // Generate AI greeting if available
-      let greetingOutput = '';
-      
-      if (this.aiSysOp) {
-        try {
-          const aiGreeting = await this.aiSysOp.generateGreeting(user.handle, user.lastLogin);
-          // AI messages already contain ANSI codes, use raw ANSI content
-          const aiContent: RawANSIContent = {
-            type: ContentType.RAW_ANSI,
-            ansi: `\r\n${aiGreeting}\r\n`,
-          };
-          greetingOutput = this.renderer.render(aiContent);
-        } catch (error) {
-          // Fall back to default message if AI fails
-          console.error('AI SysOp greeting failed:', error);
-          let greetingText = `\r\nWelcome back, ${user.handle}!\r\n`;
-          if (user.lastLogin) {
-            greetingText += `Last login: ${user.lastLogin.toLocaleString()}\r\n\r\n`;
-          } else {
-            greetingText += `This is your first login!\r\n\r\n`;
-          }
-          const fallback: MessageContent = {
-            type: ContentType.MESSAGE,
-            text: greetingText,
-            style: 'success',
-          };
-          greetingOutput = this.renderer.render(fallback);
-        }
+      // Generate AI greeting using helper
+      let greetingText = `\r\nWelcome back, ${user.handle}!\r\n`;
+      if (user.lastLogin) {
+        greetingText += `Last login: ${user.lastLogin.toLocaleString()}\r\n\r\n`;
       } else {
-        let greetingText = `\r\nWelcome back, ${user.handle}!\r\n`;
-        if (user.lastLogin) {
-          greetingText += `Last login: ${user.lastLogin.toLocaleString()}\r\n\r\n`;
-        } else {
-          greetingText += `This is your first login!\r\n\r\n`;
-        }
-        const fallback: MessageContent = {
-          type: ContentType.MESSAGE,
-          text: greetingText,
-          style: 'success',
-        };
-        greetingOutput = this.renderer.render(fallback);
+        greetingText += `This is your first login!\r\n\r\n`;
       }
+
+      const greetingOutput = await AIResponseHelper.renderAIResponse(
+        this.deps.aiSysOp,
+        () => this.deps.aiSysOp!.generateGreeting(user.handle, user.lastLogin),
+        this.deps.renderer,
+        greetingText
+      );
 
       // Show main menu immediately after login
       const menuContent: MenuContent = {
@@ -362,7 +334,7 @@ export class AuthHandler implements CommandHandler {
         ],
       };
 
-      return this.renderer.render(echoOn) + greetingOutput + this.renderer.render(menuContent) + '\r\nCommand: ';
+      return this.deps.renderer.render(echoOn) + greetingOutput + this.deps.renderer.render(menuContent) + '\r\nCommand: ';
     }
 
     return 'Login error.\r\n';
@@ -372,20 +344,25 @@ export class AuthHandler implements CommandHandler {
    * Handle failed login attempt
    */
   private handleFailedLogin(session: Session, errorMessage: string): string {
-    const attempts = (session.data.loginAttempts || 0) + 1;
+    const attempts = (session.data.auth?.loginAttempts || 0) + 1;
 
     if (attempts >= MAX_LOGIN_ATTEMPTS) {
       const error: ErrorContent = {
         type: ContentType.ERROR,
         message: 'Too many failed login attempts. Disconnecting...',
       };
-      return this.renderer.render(error);
+      return this.deps.renderer.render(error);
     }
 
-    this.sessionManager.updateSession(session.id, {
+    const authState: AuthFlowState = {
+      ...session.data.auth!,
+      loginAttempts: attempts,
+    };
+
+    this.deps.sessionManager.updateSession(session.id, {
       data: {
         ...session.data,
-        loginAttempts: attempts,
+        auth: authState,
       },
     });
 
@@ -405,6 +382,6 @@ export class AuthHandler implements CommandHandler {
       text: 'Password: ',
     };
 
-    return this.renderer.render(error) + this.renderer.render(echoOff) + this.renderer.render(prompt);
+    return this.deps.renderer.render(error) + this.deps.renderer.render(echoOff) + this.deps.renderer.render(prompt);
   }
 }

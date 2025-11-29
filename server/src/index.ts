@@ -12,7 +12,7 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { WebSocketConnection } from './connection/WebSocketConnection.js';
 import { ConnectionManager } from './connection/ConnectionManager.js';
-import { ANSIRenderer } from './ansi/ANSIRenderer.js';
+
 import { BBSDatabase } from './db/Database.js';
 import { UserRepository } from './db/repositories/UserRepository.js';
 import { SessionManager } from './session/SessionManager.js';
@@ -56,7 +56,6 @@ const userRepository = new UserRepository(database);
 // Initialize managers and renderers
 const connectionManager = new ConnectionManager(server.log);
 const sessionManager = new SessionManager(server.log);
-const ansiRenderer = new ANSIRenderer();
 const terminalRenderer = new WebTerminalRenderer();
 
 // Initialize AI (if enabled)
@@ -86,10 +85,18 @@ const userService = new UserService(userRepository);
 
 // Initialize BBS Core and register handlers
 const bbsCore = new BBSCore(sessionManager, server.log);
+
+// Create handler dependencies
+const handlerDeps = {
+  renderer: terminalRenderer,
+  sessionManager,
+  aiSysOp,
+};
+
 // Register AuthHandler first (takes precedence for CONNECTED/AUTHENTICATING states)
-bbsCore.registerHandler(new AuthHandler(userService, sessionManager, terminalRenderer, aiSysOp));
+bbsCore.registerHandler(new AuthHandler(userService, handlerDeps));
 // Register MenuHandler for authenticated users
-bbsCore.registerHandler(new MenuHandler(terminalRenderer, aiSysOp, sessionManager));
+bbsCore.registerHandler(new MenuHandler(handlerDeps));
 
 // Register plugins
 await server.register(cors, {
@@ -108,7 +115,7 @@ await server.register(rateLimit, {
     'x-ratelimit-remaining': true,
     'x-ratelimit-reset': true,
   },
-  errorResponseBuilder: (request, context) => {
+  errorResponseBuilder: (_request, context) => {
     return {
       statusCode: 429,
       error: 'Too Many Requests',
@@ -122,7 +129,7 @@ await server.register(websocket);
 
 // WebSocket route for BBS terminal connections
 server.register(async function (fastify) {
-  fastify.get('/ws', { websocket: true }, async (socket, req) => {
+  fastify.get('/ws', { websocket: true }, async (socket, _req) => {
     // Wrap WebSocket in our connection abstraction
     const connection = new WebSocketConnection(socket);
     connectionManager.addConnection(connection);
