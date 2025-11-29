@@ -80,10 +80,14 @@ try {
   server.log.error({ error: errorMessage }, 'Failed to initialize AI SysOp - continuing without AI features');
 }
 
+// Initialize services
+const { UserService } = await import('./services/UserService.js');
+const userService = new UserService(userRepository);
+
 // Initialize BBS Core and register handlers
 const bbsCore = new BBSCore(sessionManager, server.log);
 // Register AuthHandler first (takes precedence for CONNECTED/AUTHENTICATING states)
-bbsCore.registerHandler(new AuthHandler(userRepository, sessionManager, terminalRenderer, aiSysOp));
+bbsCore.registerHandler(new AuthHandler(userService, sessionManager, terminalRenderer, aiSysOp));
 // Register MenuHandler for authenticated users
 bbsCore.registerHandler(new MenuHandler(terminalRenderer, aiSysOp, sessionManager));
 

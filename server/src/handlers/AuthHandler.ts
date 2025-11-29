@@ -1,16 +1,10 @@
 import type { CommandHandler } from '../core/CommandHandler.js';
 import type { Session, SessionState } from '@baudagain/shared';
-import type { UserRepository } from '../db/repositories/UserRepository.js';
 import type { TerminalRenderer, MessageContent, PromptContent, ErrorContent, MenuContent, RawANSIContent, EchoControlContent } from '@baudagain/shared';
 import { ContentType } from '@baudagain/shared';
 import type { SessionManager } from '../session/SessionManager.js';
-import bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
+import type { UserService } from '../services/UserService.js';
 
-const BCRYPT_ROUNDS = 10;
-const MIN_HANDLE_LENGTH = 3;
-const MAX_HANDLE_LENGTH = 20;
-const MIN_PASSWORD_LENGTH = 6;
 const MAX_LOGIN_ATTEMPTS = 5;
 
 /**
@@ -18,10 +12,11 @@ const MAX_LOGIN_ATTEMPTS = 5;
  * 
  * Handles user registration and login.
  * Manages authentication state and validates credentials.
+ * Uses UserService for business logic.
  */
 export class AuthHandler implements CommandHandler {
   constructor(
-    private userRepository: UserRepository,
+    private userService: UserService,
     private sessionManager: SessionManager,
     private renderer: TerminalRenderer,
     private aiSysOp?: any  // Optional AI SysOp for welcome messages
@@ -132,8 +127,8 @@ export class AuthHandler implements CommandHandler {
     step: string
   ): Promise<string> {
     if (step === 'handle') {
-      // Validate handle
-      const validation = this.validateHandle(command);
+      // Validate handle using UserService
+      const validation = this.userService.validateHandle(command);
       if (!validation.valid) {
         const error: ErrorContent = {
           type: ContentType.ERROR,
@@ -146,9 +141,9 @@ export class AuthHandler implements CommandHandler {
         return this.renderer.render(error) + this.renderer.render(prompt);
       }
 
-      // Check if handle exists
-      const existingUser = await this.userRepository.getUserByHandle(command);
-      if (existingUser) {
+      // Check if handle is available using UserService
+      const isAvailable = await this.userService.isHandleAvailable(command);
+      if (!isAvailable) {
         const error: ErrorContent = {
           type: ContentType.ERROR,
           message: 'Handle already taken. Please choose another.',
@@ -183,11 +178,12 @@ export class AuthHandler implements CommandHandler {
     }
 
     if (step === 'password') {
-      // Validate password
-      if (command.length < MIN_PASSWORD_LENGTH) {
+      // Validate password using UserService
+      const validation = this.userService.validatePassword(command);
+      if (!validation.valid) {
         const error: ErrorContent = {
           type: ContentType.ERROR,
-          message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
+          message: validation.error!,
         };
         
         // Keep echo disabled for retry
@@ -203,23 +199,11 @@ export class AuthHandler implements CommandHandler {
         return this.renderer.render(error) + this.renderer.render(echoOff) + this.renderer.render(prompt);
       }
 
-      // Create user
+      // Create user using UserService
       const handle = session.data.handle;
-      const passwordHash = await bcrypt.hash(command, BCRYPT_ROUNDS);
-
-      const user = await this.userRepository.createUser({
-        id: uuidv4(),
+      const user = await this.userService.createUser({
         handle,
-        passwordHash,
-        accessLevel: 10,
-        createdAt: new Date(),
-        totalCalls: 1,
-        totalPosts: 0,
-        preferences: {
-          terminalType: 'ansi',
-          screenWidth: 80,
-          screenHeight: 24,
-        },
+        password: command,
       });
 
       // Re-enable echo after password input
@@ -297,21 +281,15 @@ export class AuthHandler implements CommandHandler {
   ): Promise<string> {
     if (step === 'password') {
       const handle = session.data.handle;
-      const user = await this.userRepository.getUserByHandle(handle);
+      
+      // Authenticate user using UserService
+      const user = await this.userService.authenticateUser(handle, command);
 
       if (!user) {
         return this.handleFailedLogin(session, 'Invalid handle or password.');
       }
 
-      // Verify password
-      const passwordMatch = await bcrypt.compare(command, user.passwordHash);
-
-      if (!passwordMatch) {
-        return this.handleFailedLogin(session, 'Invalid handle or password.');
-      }
-
-      // Successful login
-      await this.userRepository.updateLastLogin(user.id);
+      // Successful login (UserService already updated last login)
 
       // Re-enable echo after password input
       const echoOn: EchoControlContent = {
@@ -428,34 +406,5 @@ export class AuthHandler implements CommandHandler {
     };
 
     return this.renderer.render(error) + this.renderer.render(echoOff) + this.renderer.render(prompt);
-  }
-
-  /**
-   * Validate handle format
-   */
-  private validateHandle(handle: string): { valid: boolean; error?: string } {
-    if (handle.length < MIN_HANDLE_LENGTH) {
-      return {
-        valid: false,
-        error: `Handle must be at least ${MIN_HANDLE_LENGTH} characters.`,
-      };
-    }
-
-    if (handle.length > MAX_HANDLE_LENGTH) {
-      return {
-        valid: false,
-        error: `Handle must be no more than ${MAX_HANDLE_LENGTH} characters.`,
-      };
-    }
-
-    // Only allow alphanumeric and underscore
-    if (!/^[a-zA-Z0-9_]+$/.test(handle)) {
-      return {
-        valid: false,
-        error: 'Handle can only contain letters, numbers, and underscores.',
-      };
-    }
-
-    return { valid: true };
   }
 }
