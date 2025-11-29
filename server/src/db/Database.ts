@@ -38,9 +38,64 @@ export class BBSDatabase {
       this.db.exec(schema);
       
       this.logger.info('Database schema initialized successfully');
+      
+      // Seed default data if needed
+      this.seedDefaultData();
     } catch (error) {
       this.logger.error({ error }, 'Failed to initialize database schema');
       throw error;
+    }
+  }
+
+  /**
+   * Seed default data (message bases, etc.)
+   */
+  private seedDefaultData(): void {
+    // Check if message bases exist
+    const baseCount = this.db.prepare('SELECT COUNT(*) as count FROM message_bases').get() as { count: number };
+    
+    if (baseCount.count === 0) {
+      this.logger.info('Seeding default message bases');
+      
+      const { v4: uuidv4 } = require('uuid');
+      
+      const defaultBases = [
+        {
+          id: uuidv4(),
+          name: 'General Discussion',
+          description: 'General topics and casual conversation',
+          access_level_read: 0,
+          access_level_write: 10,
+          sort_order: 1
+        },
+        {
+          id: uuidv4(),
+          name: 'BBS Talk',
+          description: 'Discussion about BBS systems and retro computing',
+          access_level_read: 0,
+          access_level_write: 10,
+          sort_order: 2
+        },
+        {
+          id: uuidv4(),
+          name: 'AI & Technology',
+          description: 'Artificial intelligence and modern technology',
+          access_level_read: 0,
+          access_level_write: 10,
+          sort_order: 3
+        }
+      ];
+      
+      const stmt = this.db.prepare(`
+        INSERT INTO message_bases (id, name, description, access_level_read, access_level_write, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
+      
+      for (const base of defaultBases) {
+        stmt.run(base.id, base.name, base.description, base.access_level_read, base.access_level_write, base.sort_order);
+      }
+      
+      this.logger.info(`Seeded ${defaultBases.length} default message bases`);
     }
   }
 

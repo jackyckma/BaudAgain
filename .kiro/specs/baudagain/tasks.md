@@ -542,14 +542,14 @@
   - Add methods for listing, reading, and posting messages
   - _Requirements: 4.1, 4.3, 4.4_
 
-- [-] 22.2 Create MessageHandler
+- [x] 22.2 Create MessageHandler
   - Implement message base listing
   - Implement message reading with chronological ordering
   - Implement message posting with subject and body
   - Display messages with subject, author, timestamp
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 22.3 Add message persistence and visibility
+- [x] 22.3 Add message persistence and visibility
   - Store messages in database with user and message base references
   - Make messages visible to all users with appropriate access
   - _Requirements: 4.5_

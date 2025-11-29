@@ -13,6 +13,7 @@ import type { MessageBase } from '../db/repositories/MessageBaseRepository.js';
 import type { Message } from '../db/repositories/MessageRepository.js';
 
 interface MessageFlowState {
+  showingBaseList?: boolean;
   inMessageBase?: boolean;
   currentBaseId?: string;
   readingMessage?: boolean;
@@ -70,17 +71,59 @@ export class MessageHandler implements CommandHandler {
       return this.handleReadingMessage(command, session, messageState);
     }
     
-    // Handle message base navigation
+    // Handle message base navigation (inside a base)
     if (messageState.inMessageBase && messageState.currentBaseId) {
       return this.handleMessageBaseCommands(command, session, messageState);
     }
     
-    // Show message base list
-    if (cmd === 'M' || !messageState.inMessageBase) {
+    // Show message base list (first time or after 'M' command)
+    if (cmd === 'M') {
+      messageState.inMessageBase = false;
+      messageState.currentBaseId = undefined;
+      messageState.showingBaseList = true;
       return this.showMessageBaseList(session);
     }
     
+    // Handle message base selection from list
+    if (messageState.showingBaseList) {
+      return this.handleMessageBaseSelection(command, session, messageState);
+    }
+    
     return 'Unknown command in message handler.\r\n';
+  }
+  
+  /**
+   * Handle message base selection from list
+   */
+  private handleMessageBaseSelection(command: string, session: Session, messageState: MessageFlowState): string {
+    const cmd = command.toUpperCase();
+    
+    // Return to main menu
+    if (cmd === 'Q' || cmd === 'QUIT') {
+      messageState.showingBaseList = false;
+      messageState.inMessageBase = false;
+      messageState.currentBaseId = undefined;
+      session.state = SessionState.IN_MENU;
+      return '\r\nReturning to main menu...\r\n';
+    }
+    
+    // Select message base by number
+    const baseNum = parseInt(cmd, 10);
+    if (!isNaN(baseNum) && baseNum > 0) {
+      const userAccessLevel = session.userId ? 10 : 0; // TODO: Get actual access level
+      const bases = this.deps.messageService.getAccessibleMessageBases(userAccessLevel);
+      
+      if (baseNum <= bases.length) {
+        const selectedBase = bases[baseNum - 1];
+        messageState.showingBaseList = false;
+        messageState.inMessageBase = true;
+        messageState.currentBaseId = selectedBase.id;
+        return this.showMessageList(session, messageState);
+      }
+    }
+    
+    // Invalid selection
+    return '\r\nInvalid selection.\r\n\r\n' + this.showMessageBaseList(session);
   }
   
   /**
@@ -110,10 +153,6 @@ export class MessageHandler implements CommandHandler {
     output += '║  Q. Return to Main Menu                               ║\r\n';
     output += '╚═══════════════════════════════════════════════════════╝\r\n';
     output += '\r\nSelect a message base (or Q to quit): ';
-    
-    // Set state
-    const messageState = session.data.message as MessageFlowState;
-    messageState.inMessageBase = false;
     
     return output;
   }
