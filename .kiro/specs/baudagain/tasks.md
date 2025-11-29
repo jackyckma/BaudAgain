@@ -584,7 +584,7 @@
   - Add ability to edit access levels
   - _Requirements: 8.3_
 
-- [ ] 24.2 Implement Message Bases management page
+- [x] 24.2 Implement Message Bases management page
   - Display list of message bases
   - Add creation, editing, and deletion functionality
   - Configure access levels for read/write

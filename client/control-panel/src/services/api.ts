@@ -31,6 +31,33 @@ interface User {
   totalPosts: number;
 }
 
+interface MessageBase {
+  id: string;
+  name: string;
+  description?: string;
+  accessLevelRead: number;
+  accessLevelWrite: number;
+  postCount: number;
+  lastPostAt?: string;
+  sortOrder: number;
+}
+
+interface CreateMessageBaseData {
+  name: string;
+  description?: string;
+  accessLevelRead?: number;
+  accessLevelWrite?: number;
+  sortOrder?: number;
+}
+
+interface UpdateMessageBaseData {
+  name?: string;
+  description?: string;
+  accessLevelRead?: number;
+  accessLevelWrite?: number;
+  sortOrder?: number;
+}
+
 class APIClient {
   private token: string | null = null;
   private onTokenExpired?: () => void;
@@ -107,10 +134,34 @@ class APIClient {
     return this.request<User[]>('/users');
   }
 
+  async getMessageBases(): Promise<MessageBase[]> {
+    return this.request<MessageBase[]>('/message-bases');
+  }
+
+  async createMessageBase(data: CreateMessageBaseData): Promise<MessageBase> {
+    return this.request<MessageBase>('/message-bases', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateMessageBase(id: string, data: UpdateMessageBaseData): Promise<MessageBase> {
+    return this.request<MessageBase>(`/message-bases/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteMessageBase(id: string): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/message-bases/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   isAuthenticated(): boolean {
     return this.token !== null;
   }
 }
 
 export const api = new APIClient();
-export type { LoginResponse, DashboardData, User };
+export type { LoginResponse, DashboardData, User, MessageBase, CreateMessageBaseData, UpdateMessageBaseData };

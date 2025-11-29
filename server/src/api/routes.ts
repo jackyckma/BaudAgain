@@ -13,11 +13,16 @@ import {
 /**
  * Register REST API routes for the control panel
  */
+import type { MessageBaseRepository } from '../db/repositories/MessageBaseRepository.js';
+import type { MessageService } from '../services/MessageService.js';
+
 export async function registerAPIRoutes(
   server: FastifyInstance,
   userRepository: UserRepository,
   sessionManager: SessionManager,
-  jwtUtil: JWTUtil
+  jwtUtil: JWTUtil,
+  messageBaseRepository?: MessageBaseRepository,
+  messageService?: MessageService
 ) {
   // Authentication middleware
   const authenticate = async (request: any, reply: any) => {
@@ -120,10 +125,124 @@ export async function registerAPIRoutes(
     reply.code(501).send({ error: 'Not implemented yet' });
   });
 
-  // Message bases endpoint (placeholder)
+  // Message bases endpoints
   server.get('/api/message-bases', { preHandler: authenticate }, async (request, reply) => {
-    // TODO: Implement when message base system is ready
-    return [];
+    if (!messageBaseRepository) {
+      return [];
+    }
+    
+    const bases = messageBaseRepository.getAllMessageBases();
+    return bases.map(base => ({
+      id: base.id,
+      name: base.name,
+      description: base.description,
+      accessLevelRead: base.accessLevelRead,
+      accessLevelWrite: base.accessLevelWrite,
+      postCount: base.postCount,
+      lastPostAt: base.lastPostAt,
+      sortOrder: base.sortOrder,
+    }));
+  });
+
+  // Create message base
+  server.post('/api/message-bases', {
+    preHandler: authenticate,
+    config: {
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
+    if (!messageService) {
+      reply.code(501).send({ error: 'Message service not available' });
+      return;
+    }
+    
+    const { name, description, accessLevelRead, accessLevelWrite, sortOrder } = request.body as {
+      name: string;
+      description?: string;
+      accessLevelRead?: number;
+      accessLevelWrite?: number;
+      sortOrder?: number;
+    };
+    
+    if (!name || name.trim().length === 0) {
+      reply.code(400).send({ error: 'Name is required' });
+      return;
+    }
+    
+    try {
+      const base = messageService.createMessageBase({
+        name: name.trim(),
+        description: description?.trim(),
+        accessLevelRead: accessLevelRead ?? 0,
+        accessLevelWrite: accessLevelWrite ?? 10,
+        sortOrder: sortOrder ?? 0,
+      });
+      
+      return base;
+    } catch (error) {
+      reply.code(400).send({ error: error instanceof Error ? error.message : 'Failed to create message base' });
+    }
+  });
+
+  // Update message base
+  server.patch('/api/message-bases/:id', {
+    preHandler: authenticate,
+    config: {
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
+    if (!messageService) {
+      reply.code(501).send({ error: 'Message service not available' });
+      return;
+    }
+    
+    const { id } = request.params as { id: string };
+    const updates = request.body as {
+      name?: string;
+      description?: string;
+      accessLevelRead?: number;
+      accessLevelWrite?: number;
+      sortOrder?: number;
+    };
+    
+    try {
+      messageService.updateMessageBase(id, updates);
+      const base = messageService.getMessageBase(id);
+      return base;
+    } catch (error) {
+      reply.code(400).send({ error: error instanceof Error ? error.message : 'Failed to update message base' });
+    }
+  });
+
+  // Delete message base
+  server.delete('/api/message-bases/:id', {
+    preHandler: authenticate,
+    config: {
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
+    if (!messageService) {
+      reply.code(501).send({ error: 'Message service not available' });
+      return;
+    }
+    
+    const { id } = request.params as { id: string };
+    
+    try {
+      messageService.deleteMessageBase(id);
+      return { success: true };
+    } catch (error) {
+      reply.code(400).send({ error: error instanceof Error ? error.message : 'Failed to delete message base' });
+    }
   });
 
   // AI settings endpoint
