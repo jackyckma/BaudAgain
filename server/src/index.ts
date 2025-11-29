@@ -54,6 +54,10 @@ const database = new BBSDatabase('data/bbs.db', server.log);
 const userRepository = new UserRepository(database);
 const { DoorSessionRepository } = await import('./db/repositories/DoorSessionRepository.js');
 const doorSessionRepository = new DoorSessionRepository(database);
+const { MessageBaseRepository } = await import('./db/repositories/MessageBaseRepository.js');
+const messageBaseRepository = new MessageBaseRepository(database);
+const { MessageRepository } = await import('./db/repositories/MessageRepository.js');
+const messageRepository = new MessageRepository(database);
 
 // Initialize managers and renderers
 const connectionManager = new ConnectionManager(server.log);
@@ -85,6 +89,8 @@ try {
 // Initialize services
 const { UserService } = await import('./services/UserService.js');
 const userService = new UserService(userRepository);
+const { MessageService } = await import('./services/MessageService.js');
+const messageService = new MessageService(messageBaseRepository, messageRepository);
 
 // Initialize BBS Core and register handlers
 const bbsCore = new BBSCore(sessionManager, server.log);
@@ -110,6 +116,14 @@ const { OracleDoor } = await import('./doors/OracleDoor.js');
 const oracleDoor = new OracleDoor(aiService);
 doorHandler.registerDoor(oracleDoor);
 bbsCore.registerHandler(doorHandler);
+// Register MessageHandler before MenuHandler (takes precedence for message commands)
+const { MessageHandler } = await import('./handlers/MessageHandler.js');
+const messageHandlerDeps = {
+  ...handlerDeps,
+  messageService
+};
+const messageHandler = new MessageHandler(messageHandlerDeps);
+bbsCore.registerHandler(messageHandler);
 // Register MenuHandler for authenticated users
 bbsCore.registerHandler(new MenuHandler(handlerDeps));
 

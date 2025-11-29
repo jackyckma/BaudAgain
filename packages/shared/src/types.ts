@@ -40,6 +40,20 @@ export interface DoorFlowState {
 }
 
 /**
+ * Message Flow State
+ * Tracks the state of message base interactions
+ */
+export interface MessageFlowState {
+  inMessageBase?: boolean;
+  currentBaseId?: string;
+  readingMessage?: boolean;
+  currentMessageId?: string;
+  postingMessage?: boolean;
+  postStep?: 'subject' | 'body';
+  draftSubject?: string;
+}
+
+/**
  * Typed Session Data
  * Provides type safety for session-specific data
  */
@@ -47,6 +61,7 @@ export interface SessionData {
   auth?: AuthFlowState;
   menu?: MenuFlowState;
   door?: DoorFlowState;
+  message?: MessageFlowState;
 }
 
 export interface Session {
