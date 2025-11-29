@@ -114,7 +114,7 @@ export class UserService {
    */
   async isHandleAvailable(handle: string): Promise<boolean> {
     const user = await this.userRepository.getUserByHandle(handle);
-    return user === null;
+    return !user; // Returns true if user is null or undefined
   }
 
   /**
