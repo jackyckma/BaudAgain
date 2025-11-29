@@ -520,7 +520,7 @@
   - **Validates: Requirements 7.4**
 
 - [ ] 20. Add AI request rate limiting
-- [-] 20.1 Implement rate limiter for door games
+- [x] 20.1 Implement rate limiter for door games
   - Track AI requests per user per minute
   - Limit to 10 requests per minute
   - Display rate limit message when exceeded
@@ -530,7 +530,7 @@
   - **Property 57: AI request rate limiting**
   - **Validates: Requirements 15.3**
 
-- [ ] 21. Checkpoint - Verify Milestone 4
+- [-] 21. Checkpoint - Verify Milestone 4
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Milestone 5: Polish & Message Bases
