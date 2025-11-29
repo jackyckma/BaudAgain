@@ -2,7 +2,7 @@ import type { UserRepository } from '../db/repositories/UserRepository.js';
 import type { User } from '@baudagain/shared';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { validateHandle, validatePassword, type ValidationResult } from '../utils/ValidationUtils.js';
+import { validateHandle, validatePassword, sanitizeInput, type ValidationResult } from '../utils/ValidationUtils.js';
 
 const BCRYPT_ROUNDS = 10;
 
@@ -50,14 +50,19 @@ export class UserService {
     // Hash password
     const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
 
+    // Sanitize optional fields
+    const sanitizedRealName = input.realName ? sanitizeInput(input.realName) : undefined;
+    const sanitizedLocation = input.location ? sanitizeInput(input.location) : undefined;
+    const sanitizedBio = input.bio ? sanitizeInput(input.bio) : undefined;
+    
     // Create user
     const user = await this.userRepository.createUser({
       id: uuidv4(),
       handle: input.handle,
       passwordHash,
-      realName: input.realName,
-      location: input.location,
-      bio: input.bio,
+      realName: sanitizedRealName,
+      location: sanitizedLocation,
+      bio: sanitizedBio,
       accessLevel: 10, // Default access level
       createdAt: new Date(),
       totalCalls: 1,

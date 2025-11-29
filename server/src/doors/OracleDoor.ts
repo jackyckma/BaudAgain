@@ -9,6 +9,7 @@ import type { Door } from './Door.js';
 import type { Session } from '@baudagain/shared';
 import type { AIService } from '../ai/AIService.js';
 import { RateLimiter } from '../utils/RateLimiter.js';
+import { sanitizeInput } from '../utils/ValidationUtils.js';
 
 export class OracleDoor implements Door {
   id = 'oracle';
@@ -66,10 +67,11 @@ export class OracleDoor implements Door {
    * Process user input
    */
   async processInput(input: string, session: Session): Promise<string> {
-    const trimmedInput = input.trim();
+    // Sanitize and trim input
+    const sanitizedInput = sanitizeInput(input);
     
     // Empty input
-    if (!trimmedInput) {
+    if (!sanitizedInput) {
       return '\r\n\x1b[35m"Speak your question clearly..."\x1b[0m\r\n\r\n' +
              'Enter your question (or type \x1b[33mQ\x1b[0m to leave): ';
     }
@@ -94,7 +96,7 @@ export class OracleDoor implements Door {
         
         // Generate mystical response
         const prompt = `You are a mystical oracle, a fortune teller with ancient wisdom. 
-A seeker asks: "${trimmedInput}"
+A seeker asks: "${sanitizedInput}"
 
 Respond in a cryptic, mystical tone. Use mystical symbols (🔮, ✨, 🌙, ⭐) and be dramatic.
 Keep your response under 150 characters. Be mysterious and profound.`;
@@ -123,7 +125,7 @@ Keep your response under 150 characters. Be mysterious and profound.`;
         }
         
         session.data.door.history.push({
-          question: trimmedInput,
+          question: sanitizedInput,
           response: response,
           timestamp: new Date().toISOString()
         });
