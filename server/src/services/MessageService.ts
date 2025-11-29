@@ -6,12 +6,14 @@
 
 import type { MessageBaseRepository, MessageBase, CreateMessageBaseData } from '../db/repositories/MessageBaseRepository.js';
 import type { MessageRepository, Message, CreateMessageData } from '../db/repositories/MessageRepository.js';
+import type { UserRepository } from '../db/repositories/UserRepository.js';
 import { validateLength, sanitizeInput } from '../utils/ValidationUtils.js';
 
 export class MessageService {
   constructor(
     private messageBaseRepo: MessageBaseRepository,
-    private messageRepo: MessageRepository
+    private messageRepo: MessageRepository,
+    private userRepo: UserRepository
   ) {}
   
   /**
@@ -81,13 +83,13 @@ export class MessageService {
    */
   postMessage(data: CreateMessageData): Message {
     // Validate subject
-    const subjectValidation = ValidationUtils.validateLength(data.subject, 1, 200);
+    const subjectValidation = validateLength(data.subject, 1, 200, 'Subject');
     if (!subjectValidation.valid) {
       throw new Error(subjectValidation.error || 'Invalid subject');
     }
     
     // Validate body
-    const bodyValidation = ValidationUtils.validateLength(data.body, 1, 10000);
+    const bodyValidation = validateLength(data.body, 1, 10000, 'Body');
     if (!bodyValidation.valid) {
       throw new Error(bodyValidation.error || 'Invalid message body');
     }
@@ -95,8 +97,8 @@ export class MessageService {
     // Sanitize input
     const sanitizedData: CreateMessageData = {
       ...data,
-      subject: ValidationUtils.sanitizeInput(data.subject),
-      body: ValidationUtils.sanitizeInput(data.body)
+      subject: sanitizeInput(data.subject),
+      body: sanitizeInput(data.body)
     };
     
     // Create message
@@ -116,16 +118,45 @@ export class MessageService {
   }
   
   /**
+   * Get message bases accessible by user
+   */
+  async getAccessibleMessageBasesForUser(userId: string | undefined): Promise<MessageBase[]> {
+    const accessLevel = await this.getUserAccessLevel(userId);
+    return this.messageBaseRepo.getAccessibleMessageBases(accessLevel);
+  }
+  
+  /**
+   * Get user access level
+   */
+  private async getUserAccessLevel(userId: string | undefined): Promise<number> {
+    if (!userId) {
+      return 0; // Anonymous users
+    }
+    
+    // Get user from repository
+    const user = this.userRepo.findById(userId);
+    return user?.accessLevel ?? 10; // Default user level
+  }
+  
+  /**
    * Check if user can read from message base
    */
-  canRead(messageBase: MessageBase, userAccessLevel: number): boolean {
-    return userAccessLevel >= messageBase.accessLevelRead;
+  async canUserReadBase(userId: string | undefined, baseId: string): Promise<boolean> {
+    const base = this.getMessageBase(baseId);
+    if (!base) return false;
+    
+    const accessLevel = await this.getUserAccessLevel(userId);
+    return accessLevel >= base.accessLevelRead;
   }
   
   /**
    * Check if user can write to message base
    */
-  canWrite(messageBase: MessageBase, userAccessLevel: number): boolean {
-    return userAccessLevel >= messageBase.accessLevelWrite;
+  async canUserWriteBase(userId: string | undefined, baseId: string): Promise<boolean> {
+    const base = this.getMessageBase(baseId);
+    if (!base) return false;
+    
+    const accessLevel = await this.getUserAccessLevel(userId);
+    return accessLevel >= base.accessLevelWrite;
   }
 }

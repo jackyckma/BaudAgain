@@ -121,7 +121,7 @@ export class MessageHandler implements CommandHandler {
   /**
    * Handle message base commands
    */
-  private handleMessageBaseCommands(command: string, session: Session, messageState: MessageFlowState): string {
+  private async handleMessageBaseCommands(command: string, session: Session, messageState: MessageFlowState): Promise<string> {
     const cmd = command.toUpperCase();
     
     // Return to message base list
@@ -133,7 +133,7 @@ export class MessageHandler implements CommandHandler {
     
     // Post new message
     if (cmd === 'P' || cmd === 'POST') {
-      return this.startPostingMessage(session, messageState);
+      return await this.startPostingMessage(session, messageState);
     }
     
     // Read message by number
@@ -238,7 +238,7 @@ export class MessageHandler implements CommandHandler {
   /**
    * Start posting a new message
    */
-  private startPostingMessage(session: Session, messageState: MessageFlowState): string {
+  private async startPostingMessage(session: Session, messageState: MessageFlowState): Promise<string> {
     if (!session.userId) {
       return '\r\nYou must be logged in to post messages.\r\n\r\n' + 
              this.showMessageList(session, messageState);
@@ -254,8 +254,8 @@ export class MessageHandler implements CommandHandler {
     }
     
     // Check write access
-    const userAccessLevel = 10; // TODO: Get actual access level
-    if (!this.deps.messageService.canWrite(base, userAccessLevel)) {
+    const canWrite = await this.deps.messageService.canUserWriteBase(session.userId, messageState.currentBaseId);
+    if (!canWrite) {
       return '\r\nYou do not have permission to post in this message base.\r\n\r\n' +
              this.showMessageList(session, messageState);
     }

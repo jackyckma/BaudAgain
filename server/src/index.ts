@@ -90,7 +90,7 @@ try {
 const { UserService } = await import('./services/UserService.js');
 const userService = new UserService(userRepository);
 const { MessageService } = await import('./services/MessageService.js');
-const messageService = new MessageService(messageBaseRepository, messageRepository);
+const messageService = new MessageService(messageBaseRepository, messageRepository, userRepository);
 
 // Initialize BBS Core and register handlers
 const bbsCore = new BBSCore(sessionManager, server.log);
