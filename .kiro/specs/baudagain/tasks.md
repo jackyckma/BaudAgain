@@ -474,14 +474,14 @@
 ## Milestone 4: Door Game (The Oracle)
 
 - [ ] 18. Implement door game framework
-- [-] 18.1 Create Door interface and DoorHandler
+- [x] 18.1 Create Door interface and DoorHandler
   - Define Door interface with enter, processInput, exit methods
   - Implement DoorHandler to manage door game lifecycle
   - Add door game menu to main menu
   - Track door session state
   - _Requirements: 7.1_
 
-- [ ] 18.2 Create door session management
+- [-] 18.2 Create door session management
   - Store door game state in session
   - Persist door sessions to database for resumption
   - Handle door exit and return to menu

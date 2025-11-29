@@ -11,11 +11,16 @@ import type { Session } from '@baudagain/shared';
 import { SessionState, ContentType } from '@baudagain/shared';
 import type { Door } from '../doors/Door.js';
 import type { MenuContent } from '@baudagain/shared';
+import type { DoorSessionRepository } from '../db/repositories/DoorSessionRepository.js';
+
+export interface DoorHandlerDependencies extends HandlerDependencies {
+  doorSessionRepository?: DoorSessionRepository;
+}
 
 export class DoorHandler implements CommandHandler {
   private doors: Map<string, Door> = new Map();
   
-  constructor(private deps: HandlerDependencies) {}
+  constructor(private deps: DoorHandlerDependencies) {}
   
   /**
    * Register a door game
@@ -98,12 +103,18 @@ export class DoorHandler implements CommandHandler {
    * Enter a door game
    */
   private async enterDoor(door: Door, session: Session): Promise<string> {
+    // Check if user has a saved session for this door
+    let savedSession = null;
+    if (this.deps.doorSessionRepository && session.userId) {
+      savedSession = this.deps.doorSessionRepository.getActiveDoorSession(session.userId, door.id);
+    }
+    
     // Update session state
     session.state = SessionState.IN_DOOR;
     session.data.door = {
       doorId: door.id,
-      gameState: {},
-      history: []
+      gameState: savedSession ? JSON.parse(savedSession.state) : {},
+      history: savedSession ? JSON.parse(savedSession.history) : []
     };
     
     // Update session
@@ -112,9 +123,25 @@ export class DoorHandler implements CommandHandler {
       data: session.data
     });
     
+    // Save door session to database
+    if (this.deps.doorSessionRepository && session.userId && !savedSession) {
+      this.deps.doorSessionRepository.createDoorSession({
+        userId: session.userId,
+        doorId: door.id,
+        state: session.data.door.gameState,
+        history: session.data.door.history
+      });
+    }
+    
     // Enter the door
     try {
       const output = await door.enter(session);
+      
+      // If resuming, add a message
+      if (savedSession) {
+        return '\r\n\x1b[33m[Resuming saved game...]\x1b[0m\r\n\r\n' + output;
+      }
+      
       return output;
     } catch (error) {
       console.error(`Error entering door ${door.id}:`, error);
@@ -148,6 +175,18 @@ export class DoorHandler implements CommandHandler {
     try {
       const output = await door.processInput(command, session);
       
+      // Save door session state to database
+      if (this.deps.doorSessionRepository && session.userId && session.data.door) {
+        const savedSession = this.deps.doorSessionRepository.getActiveDoorSession(session.userId, doorId);
+        if (savedSession) {
+          this.deps.doorSessionRepository.updateDoorSession(
+            savedSession.id,
+            session.data.door.gameState,
+            session.data.door.history
+          );
+        }
+      }
+      
       // Update session activity
       this.deps.sessionManager.touchSession(session.id);
       
@@ -171,6 +210,17 @@ export class DoorHandler implements CommandHandler {
       } catch (error) {
         console.error(`Error exiting door ${door.id}:`, error);
         exitMessage = '\r\nExiting door game...\r\n\r\n';
+      }
+    }
+    
+    // Delete saved door session from database (user is exiting, not just disconnecting)
+    if (this.deps.doorSessionRepository && session.userId && session.data.door?.doorId) {
+      const savedSession = this.deps.doorSessionRepository.getActiveDoorSession(
+        session.userId,
+        session.data.door.doorId
+      );
+      if (savedSession) {
+        this.deps.doorSessionRepository.deleteDoorSession(savedSession.id);
       }
     }
     

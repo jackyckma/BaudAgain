@@ -52,6 +52,8 @@ server.log.info('JWT authentication initialized');
 // Initialize database
 const database = new BBSDatabase('data/bbs.db', server.log);
 const userRepository = new UserRepository(database);
+const { DoorSessionRepository } = await import('./db/repositories/DoorSessionRepository.js');
+const doorSessionRepository = new DoorSessionRepository(database);
 
 // Initialize managers and renderers
 const connectionManager = new ConnectionManager(server.log);
@@ -97,7 +99,11 @@ const handlerDeps = {
 bbsCore.registerHandler(new AuthHandler(userService, handlerDeps));
 // Register DoorHandler before MenuHandler (takes precedence for door game commands)
 const { DoorHandler } = await import('./handlers/DoorHandler.js');
-const doorHandler = new DoorHandler(handlerDeps);
+const doorHandlerDeps = {
+  ...handlerDeps,
+  doorSessionRepository
+};
+const doorHandler = new DoorHandler(doorHandlerDeps);
 bbsCore.registerHandler(doorHandler);
 // Register MenuHandler for authenticated users
 bbsCore.registerHandler(new MenuHandler(handlerDeps));
