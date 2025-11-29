@@ -92,7 +92,16 @@ export async function registerAPIRoutes(
   });
 
   // Update user access level
-  server.patch('/api/users/:id', { preHandler: authenticate }, async (request, reply) => {
+  // Rate limit for data modification: 30 requests per minute
+  server.patch('/api/users/:id', {
+    preHandler: authenticate,
+    config: {
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const { accessLevel } = request.body as { accessLevel: number };
     
@@ -123,7 +132,15 @@ export async function registerAPIRoutes(
   });
 
   // Login endpoint (for control panel authentication)
-  server.post('/api/login', async (request, reply) => {
+  // Stricter rate limit: 10 requests per minute
+  server.post('/api/login', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
     const { handle, password } = request.body as { handle: string; password: string };
     
     if (!handle || !password) {

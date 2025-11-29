@@ -9,6 +9,7 @@ dotenv.config({ path: path.join(projectRoot, '.env') });
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import { WebSocketConnection } from './connection/WebSocketConnection.js';
 import { ConnectionManager } from './connection/ConnectionManager.js';
 import { ANSIRenderer } from './ansi/ANSIRenderer.js';
@@ -90,6 +91,28 @@ bbsCore.registerHandler(new MenuHandler(terminalRenderer, aiSysOp, sessionManage
 await server.register(cors, {
   origin: true, // Allow all origins in development
 });
+
+// Register rate limiting
+await server.register(rateLimit, {
+  global: true,
+  max: 100, // 100 requests
+  timeWindow: '15 minutes', // per 15 minutes
+  cache: 10000, // Cache size
+  // Note: allowList removed for testing - add back ['127.0.0.1'] for local development if needed
+  addHeaders: {
+    'x-ratelimit-limit': true,
+    'x-ratelimit-remaining': true,
+    'x-ratelimit-reset': true,
+  },
+  errorResponseBuilder: (request, context) => {
+    return {
+      statusCode: 429,
+      error: 'Too Many Requests',
+      message: `Rate limit exceeded. Try again in ${Math.ceil(context.ttl / 1000)} seconds.`,
+    };
+  },
+});
+server.log.info('Rate limiting enabled: 100 requests per 15 minutes');
 
 await server.register(websocket);
 

@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Tasks Completion Updater",
+  "description": "Monitors tasks.md for changes and asks the agent to update all relevant documents when a task is marked as completed",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "tasks.md"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The tasks.md file has been updated. Please review the changes to identify if any tasks have been marked as completed. If tasks are completed, update all relevant documentation files (such as README.md, ARCHITECTURE.md, or other related docs) to reflect the completion of these tasks and any changes they represent."
+  }
+}
