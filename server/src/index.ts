@@ -62,6 +62,7 @@ const terminalRenderer = new WebTerminalRenderer();
 
 // Initialize AI (if enabled)
 let aiSysOp: AISysOp | undefined;
+let aiService: AIService | undefined;
 try {
   if (config.ai.sysop.enabled) {
     const apiKey = configLoader.getAIApiKey();
@@ -70,7 +71,7 @@ try {
       model: config.ai.model,
       apiKey,
     });
-    const aiService = new AIService(aiProvider, server.log);
+    aiService = new AIService(aiProvider, server.log);
     aiSysOp = new AISysOp(aiService, config, server.log);
     server.log.info('AI SysOp initialized successfully');
   } else {
@@ -104,6 +105,10 @@ const doorHandlerDeps = {
   doorSessionRepository
 };
 const doorHandler = new DoorHandler(doorHandlerDeps);
+// Register The Oracle door game
+const { OracleDoor } = await import('./doors/OracleDoor.js');
+const oracleDoor = new OracleDoor(aiService);
+doorHandler.registerDoor(oracleDoor);
 bbsCore.registerHandler(doorHandler);
 // Register MenuHandler for authenticated users
 bbsCore.registerHandler(new MenuHandler(handlerDeps));

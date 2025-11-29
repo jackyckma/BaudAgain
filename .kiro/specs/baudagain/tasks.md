@@ -481,7 +481,7 @@
   - Track door session state
   - _Requirements: 7.1_
 
-- [-] 18.2 Create door session management
+- [x] 18.2 Create door session management
   - Store door game state in session
   - Persist door sessions to database for resumption
   - Handle door exit and return to menu
@@ -492,7 +492,7 @@
   - **Validates: Requirements 7.5**
 
 - [ ] 19. Implement The Oracle door game
-- [ ] 19.1 Create OracleDoor class
+- [-] 19.1 Create OracleDoor class
   - Implement Door interface for The Oracle
   - Create atmospheric introduction screen
   - Handle question input from user
