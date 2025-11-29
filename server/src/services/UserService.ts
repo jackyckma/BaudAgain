@@ -2,11 +2,9 @@ import type { UserRepository } from '../db/repositories/UserRepository.js';
 import type { User } from '@baudagain/shared';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import { validateHandle, validatePassword, type ValidationResult } from '../utils/ValidationUtils.js';
 
 const BCRYPT_ROUNDS = 10;
-const MIN_HANDLE_LENGTH = 3;
-const MAX_HANDLE_LENGTH = 20;
-const MIN_PASSWORD_LENGTH = 6;
 
 export interface CreateUserInput {
   handle: string;
@@ -14,11 +12,6 @@ export interface CreateUserInput {
   realName?: string;
   location?: string;
   bio?: string;
-}
-
-export interface ValidationResult {
-  valid: boolean;
-  error?: string;
 }
 
 /**
@@ -103,46 +96,17 @@ export class UserService {
   }
 
   /**
-   * Validate handle format
+   * Validate handle format (delegates to shared utility)
    */
   validateHandle(handle: string): ValidationResult {
-    if (handle.length < MIN_HANDLE_LENGTH) {
-      return {
-        valid: false,
-        error: `Handle must be at least ${MIN_HANDLE_LENGTH} characters.`,
-      };
-    }
-
-    if (handle.length > MAX_HANDLE_LENGTH) {
-      return {
-        valid: false,
-        error: `Handle must be no more than ${MAX_HANDLE_LENGTH} characters.`,
-      };
-    }
-
-    // Only allow alphanumeric and underscore
-    if (!/^[a-zA-Z0-9_]+$/.test(handle)) {
-      return {
-        valid: false,
-        error: 'Handle can only contain letters, numbers, and underscores.',
-      };
-    }
-
-    return { valid: true };
+    return validateHandle(handle);
   }
 
   /**
-   * Validate password format
+   * Validate password format (delegates to shared utility)
    */
   validatePassword(password: string): ValidationResult {
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      return {
-        valid: false,
-        error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
-      };
-    }
-
-    return { valid: true };
+    return validatePassword(password);
   }
 
   /**

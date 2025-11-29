@@ -3,6 +3,12 @@ import type { UserRepository } from '../db/repositories/UserRepository.js';
 import type { SessionManager } from '../session/SessionManager.js';
 import type { JWTUtil } from '../auth/jwt.js';
 import bcrypt from 'bcrypt';
+import {
+  sendBadRequest,
+  sendUnauthorized,
+  sendForbidden,
+  sendInternalError,
+} from '../utils/ErrorHandler.js';
 
 /**
  * Register REST API routes for the control panel
@@ -18,7 +24,7 @@ export async function registerAPIRoutes(
     const authHeader = request.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      reply.code(401).send({ error: 'Unauthorized - Missing or invalid authorization header' });
+      sendUnauthorized(reply, 'Missing or invalid authorization header');
       return;
     }
 
@@ -30,7 +36,7 @@ export async function registerAPIRoutes(
       
       // Check if user is SysOp (access level >= 255)
       if (payload.accessLevel < 255) {
-        reply.code(403).send({ error: 'Forbidden - SysOp access required' });
+        sendForbidden(reply, 'SysOp access required');
         return;
       }
 
@@ -43,14 +49,14 @@ export async function registerAPIRoutes(
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === 'Token expired') {
-          reply.code(401).send({ error: 'Token expired' });
+          sendUnauthorized(reply, 'Token expired');
         } else if (error.message === 'Invalid token') {
-          reply.code(401).send({ error: 'Invalid token' });
+          sendUnauthorized(reply, 'Invalid token');
         } else {
-          reply.code(401).send({ error: 'Authentication failed' });
+          sendUnauthorized(reply, 'Authentication failed');
         }
       } else {
-        reply.code(401).send({ error: 'Authentication failed' });
+        sendUnauthorized(reply, 'Authentication failed');
       }
       return;
     }
