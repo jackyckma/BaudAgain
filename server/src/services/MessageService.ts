@@ -8,13 +8,19 @@ import type { MessageBaseRepository, MessageBase, CreateMessageBaseData } from '
 import type { MessageRepository, Message, CreateMessageData } from '../db/repositories/MessageRepository.js';
 import type { UserRepository } from '../db/repositories/UserRepository.js';
 import { validateLength, sanitizeInput } from '../utils/ValidationUtils.js';
+import { RateLimiter } from '../utils/RateLimiter.js';
 
 export class MessageService {
+  private messageRateLimiter: RateLimiter;
+  
   constructor(
     private messageBaseRepo: MessageBaseRepository,
     private messageRepo: MessageRepository,
     private userRepo: UserRepository
-  ) {}
+  ) {
+    // 30 messages per hour (3600000 ms)
+    this.messageRateLimiter = new RateLimiter(30, 3600000);
+  }
   
   /**
    * Get all message bases accessible by user
@@ -82,6 +88,13 @@ export class MessageService {
    * Post a new message
    */
   postMessage(data: CreateMessageData): Message {
+    // Check rate limit
+    if (!this.messageRateLimiter.isAllowed(data.userId)) {
+      const resetTime = this.messageRateLimiter.getResetTime(data.userId);
+      const minutes = Math.ceil(resetTime / 60);
+      throw new Error(`Rate limit exceeded. You can post again in ${minutes} minute${minutes !== 1 ? 's' : ''}.`);
+    }
+    
     // Validate subject
     const subjectValidation = validateLength(data.subject, 1, 200, 'Subject');
     if (!subjectValidation.valid) {
@@ -108,6 +121,20 @@ export class MessageService {
     this.messageBaseRepo.incrementPostCount(data.baseId);
     
     return message;
+  }
+  
+  /**
+   * Get remaining message posts for a user
+   */
+  getRemainingPosts(userId: string): number {
+    return this.messageRateLimiter.getRemaining(userId);
+  }
+  
+  /**
+   * Get time until user can post again (in seconds)
+   */
+  getPostResetTime(userId: string): number {
+    return this.messageRateLimiter.getResetTime(userId);
   }
   
   /**
