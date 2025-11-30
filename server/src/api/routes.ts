@@ -15,12 +15,14 @@ import {
  */
 import type { MessageBaseRepository } from '../db/repositories/MessageBaseRepository.js';
 import type { MessageService } from '../services/MessageService.js';
+import type { BBSConfig } from '../config/ConfigLoader.js';
 
 export async function registerAPIRoutes(
   server: FastifyInstance,
   userRepository: UserRepository,
   sessionManager: SessionManager,
   jwtUtil: JWTUtil,
+  config: BBSConfig,
   messageBaseRepository?: MessageBaseRepository,
   messageService?: MessageService
 ) {
@@ -247,12 +249,20 @@ export async function registerAPIRoutes(
 
   // AI settings endpoint
   server.get('/api/ai-settings', { preHandler: authenticate }, async (request, reply) => {
-    // TODO: Read from config
     return {
-      provider: 'anthropic',
-      model: 'claude-3-5-haiku-20241022',
-      enabled: true,
-      welcomeNewUsers: true,
+      provider: config.ai.provider,
+      model: config.ai.model,
+      sysop: {
+        enabled: config.ai.sysop.enabled,
+        welcomeNewUsers: config.ai.sysop.welcomeNewUsers,
+        participateInChat: config.ai.sysop.participateInChat,
+        chatFrequency: config.ai.sysop.chatFrequency,
+        personality: config.ai.sysop.personality,
+      },
+      doors: {
+        enabled: config.ai.doors.enabled,
+        maxTokensPerTurn: config.ai.doors.maxTokensPerTurn,
+      },
     };
   });
 

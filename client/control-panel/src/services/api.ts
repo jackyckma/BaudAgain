@@ -58,6 +58,22 @@ interface UpdateMessageBaseData {
   sortOrder?: number;
 }
 
+interface AISettings {
+  provider: string;
+  model: string;
+  sysop: {
+    enabled: boolean;
+    welcomeNewUsers: boolean;
+    participateInChat: boolean;
+    chatFrequency: string;
+    personality: string;
+  };
+  doors: {
+    enabled: boolean;
+    maxTokensPerTurn: number;
+  };
+}
+
 class APIClient {
   private token: string | null = null;
   private onTokenExpired?: () => void;
@@ -158,10 +174,14 @@ class APIClient {
     });
   }
 
+  async getAISettings(): Promise<AISettings> {
+    return this.request<AISettings>('/ai-settings');
+  }
+
   isAuthenticated(): boolean {
     return this.token !== null;
   }
 }
 
 export const api = new APIClient();
-export type { LoginResponse, DashboardData, User, MessageBase, CreateMessageBaseData, UpdateMessageBaseData };
+export type { LoginResponse, DashboardData, User, MessageBase, CreateMessageBaseData, UpdateMessageBaseData, AISettings };

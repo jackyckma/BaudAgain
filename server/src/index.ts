@@ -222,7 +222,7 @@ server.register(async function (fastify) {
 });
 
 // Register REST API routes for control panel
-await registerAPIRoutes(server, userRepository, sessionManager, jwtUtil, messageBaseRepository, messageService);
+await registerAPIRoutes(server, userRepository, sessionManager, jwtUtil, config, messageBaseRepository, messageService);
 
 // Health check endpoint
 server.get('/health', async () => {
