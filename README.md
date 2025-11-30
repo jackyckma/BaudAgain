@@ -148,12 +148,12 @@ Or use the **AI Configuration Assistant** in the control panel to configure via 
 - [x] The Oracle (AI fortune teller)
 - [x] Door session persistence
 
-### Milestone 5: Polish 🔄 83% COMPLETE
+### Milestone 5: Polish 🔄 87% COMPLETE
 - [x] Message base system (with critical fixes needed)
 - [x] Rate limiting (messages, AI requests)
 - [x] Input sanitization
 - [x] Control panel features (Users, Message Bases, AI Settings)
-- [ ] Graceful shutdown
+- [x] Graceful shutdown
 - [ ] UI polish
 
 **Status:** 🔴 **Critical fixes required** - See `CRITICAL_FIXES_REQUIRED.md`

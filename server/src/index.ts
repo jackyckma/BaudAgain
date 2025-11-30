@@ -51,6 +51,7 @@ server.log.info('JWT authentication initialized');
 
 // Initialize database
 const database = new BBSDatabase('data/bbs.db', server.log);
+await database.ready(); // Wait for initialization to complete
 const userRepository = new UserRepository(database);
 const { DoorSessionRepository } = await import('./db/repositories/DoorSessionRepository.js');
 const doorSessionRepository = new DoorSessionRepository(database);

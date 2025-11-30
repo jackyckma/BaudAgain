@@ -13,17 +13,17 @@
 | **2** | ✅ Complete | 100% | User System - Auth & profiles |
 | **3** | ✅ Complete | 100% | AI Integration - Chat & Oracle |
 | **4** | ✅ Complete | 100% | Door Games - Framework & Oracle |
-| **5** | 🔄 In Progress | 83% | Polish & Message Bases |
+| **5** | 🔄 In Progress | 87% | Polish & Message Bases |
 | **6** | 📋 Planned | 0% | Hybrid Architecture (REST + WebSocket) |
 
-**Overall Progress:** 4.83/6 milestones (81%)
+**Overall Progress:** 4.87/6 milestones (81%)
 
 ---
 
 ## 🎯 Milestone 5: Polish & Message Bases (Current Focus)
 
 **Timeline:** 2-3 days  
-**Status:** In Progress (30% complete)  
+**Status:** In Progress (87% complete)  
 **Prerequisites:** Milestone 4 complete ✅
 
 ### Objectives
@@ -57,9 +57,9 @@ Complete a polished, production-ready BBS with all core features:
 
 **⏳ Remaining:**
 - Fix critical architectural issues (2 hours)
-- Graceful shutdown handling
-- UI polish and refinements
-- Multi-user testing
+- Reconnection support (30 minutes)
+- UI polish and refinements (2 hours)
+- Multi-user testing (30 minutes)
 
 ### Architecture Impact
 ```
@@ -86,8 +86,8 @@ Integration Points:
 - ✅ Message threading works correctly
 - ✅ Control panel fully functional
 - ✅ All inputs sanitized
-- ✅ System handles shutdown gracefully
-- ✅ UI is polished and consistent
+- ✅ System handles shutdown gracefully (goodbye messages, resource cleanup)
+- [ ] UI is polished and consistent
 
 ---
 
@@ -255,13 +255,14 @@ Mobile App → REST API → Services → Repositories
 ## 📝 Next Actions
 
 ### Immediate (Milestone 5)
-1. Complete MessageHandler implementation
-2. Implement MessageService business logic
-3. Add message posting rate limiting
-4. Build AI Settings page (Users and Message Bases pages complete)
-5. Add input sanitization
-6. Implement graceful shutdown
-7. Polish UI and test multi-user scenarios
+1. ✅ Complete MessageHandler implementation
+2. ✅ Implement MessageService business logic
+3. ✅ Add message posting rate limiting
+4. ✅ Build AI Settings page (Users and Message Bases pages complete)
+5. ✅ Add input sanitization
+6. ✅ Implement graceful shutdown
+7. Add reconnection support
+8. Polish UI and test multi-user scenarios
 
 ### After Milestone 5 (Milestone 6)
 1. Design REST API endpoints

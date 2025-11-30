@@ -10,6 +10,8 @@ const __dirname = dirname(__filename);
 export class BBSDatabase {
   private db: Database.Database;
 
+  private initPromise: Promise<void>;
+
   constructor(
     private dbPath: string,
     private logger: FastifyBaseLogger
@@ -23,10 +25,17 @@ export class BBSDatabase {
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL'); // Write-Ahead Logging for better concurrency
     this.db.pragma('foreign_keys = ON'); // Enable foreign key constraints
-    this.initialize();
+    this.initPromise = this.initialize();
   }
 
-  private initialize(): void {
+  /**
+   * Wait for database initialization to complete
+   */
+  async ready(): Promise<void> {
+    await this.initPromise;
+  }
+
+  private async initialize(): Promise<void> {
     this.logger.info({ dbPath: this.dbPath }, 'Initializing database');
     
     try {
@@ -40,7 +49,7 @@ export class BBSDatabase {
       this.logger.info('Database schema initialized successfully');
       
       // Seed default data if needed
-      this.seedDefaultData();
+      await this.seedDefaultData();
     } catch (error) {
       this.logger.error({ error }, 'Failed to initialize database schema');
       throw error;
@@ -50,14 +59,14 @@ export class BBSDatabase {
   /**
    * Seed default data (message bases, etc.)
    */
-  private seedDefaultData(): void {
+  private async seedDefaultData(): Promise<void> {
     // Check if message bases exist
     const baseCount = this.db.prepare('SELECT COUNT(*) as count FROM message_bases').get() as { count: number };
     
     if (baseCount.count === 0) {
       this.logger.info('Seeding default message bases');
       
-      const { v4: uuidv4 } = require('uuid');
+      const { v4: uuidv4 } = await import('uuid');
       
       const defaultBases = [
         {
