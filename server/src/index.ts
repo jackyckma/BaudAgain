@@ -240,16 +240,78 @@ const HOST = '0.0.0.0';
 
 // Graceful shutdown
 const shutdown = async () => {
-  server.log.info('Shutting down gracefully...');
-  sessionManager.destroy();
-  await connectionManager.closeAll();
-  database.close();
-  await server.close();
-  process.exit(0);
+  server.log.info('🛑 Initiating graceful shutdown...');
+  
+  try {
+    // Send goodbye message to all connected users
+    const connections = connectionManager.getAllConnections();
+    const goodbyeMessage = '\r\n' +
+      '╔═══════════════════════════════════════════════════════════╗\r\n' +
+      '║                                                           ║\r\n' +
+      '║              🌙 BAUDAGAIN BBS - GOODBYE 🌙                ║\r\n' +
+      '║                                                           ║\r\n' +
+      '╠═══════════════════════════════════════════════════════════╣\r\n' +
+      '║                                                           ║\r\n' +
+      '║   The system is shutting down for maintenance...         ║\r\n' +
+      '║                                                           ║\r\n' +
+      '║   Thank you for calling BaudAgain BBS!                   ║\r\n' +
+      '║   We hope to see you again soon.                         ║\r\n' +
+      '║                                                           ║\r\n' +
+      '║   Stay retro. Stay connected.                            ║\r\n' +
+      '║                                                           ║\r\n' +
+      '╚═══════════════════════════════════════════════════════════╝\r\n\r\n';
+    
+    server.log.info(`Sending goodbye message to ${connections.length} connected user(s)`);
+    
+    // Send goodbye to all connections
+    for (const conn of connections) {
+      try {
+        await conn.send(goodbyeMessage);
+      } catch (err) {
+        server.log.error({ err, connectionId: conn.id }, 'Error sending goodbye message');
+      }
+    }
+    
+    // Give connections time to receive the message
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Clean up sessions
+    server.log.info('Cleaning up sessions...');
+    sessionManager.destroy();
+    
+    // Close all connections
+    server.log.info('Closing all connections...');
+    await connectionManager.closeAll();
+    
+    // Close database
+    server.log.info('Closing database...');
+    database.close();
+    
+    // Close server
+    server.log.info('Closing server...');
+    await server.close();
+    
+    server.log.info('✅ Graceful shutdown complete');
+    process.exit(0);
+  } catch (error) {
+    server.log.error({ error }, 'Error during shutdown');
+    process.exit(1);
+  }
 };
 
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+  server.log.error({ error }, 'Uncaught exception');
+  shutdown();
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  server.log.error({ reason, promise }, 'Unhandled rejection');
+  shutdown();
+});
 
 try {
   await server.listen({ port: PORT, host: HOST });

@@ -54,7 +54,8 @@ None currently - ready for next task!
 
 ### Task 24: Control Panel Features
 - ✅ **24.1** Users management page (already implemented)
-- ✅ **24.2** Message Bases management page (JUST COMPLETED)
+- ✅ **24.2** Message Bases management page
+- ✅ **24.3** AI Settings page (JUST COMPLETED)
 
 **Features Implemented:**
 - Full CRUD interface for message bases
@@ -65,13 +66,12 @@ None currently - ready for next task!
 - Sort order management
 - Real-time updates after operations
 - Proper error handling
+- Read-only AI settings display
+- Provider and model information
+- SysOp configuration status
+- Door games AI settings
 
 ## ⏳ Remaining Tasks
-
-### Task 24: Control Panel Features (Continued)
-- [ ] 24.3 Implement AI Settings page
-
-**Estimated Time:** 1 hour
 
 ### Task 26: Graceful Shutdown (Medium Priority)
 - [ ] 26.1 Add graceful shutdown
@@ -108,6 +108,24 @@ None currently - ready for next task!
 | **Graceful Shutdown** | ⏳ Not Started | 0% |
 | **UI Polish** | ⏳ Not Started | 0% |
 | **Overall** | 🔄 In Progress | **83%** |
+
+---
+
+## ⚠️ CRITICAL ISSUES IDENTIFIED
+
+**STOP - Must Fix Before Proceeding:**
+
+The architecture review has identified **critical issues** that must be addressed:
+
+1. **MessageHandler violates layered architecture** - Contains business logic, bypasses service layer
+2. **ValidationUtils import inconsistency in MessageService** - Mixed patterns causing compilation errors
+3. **MessageService has sync/async inconsistency** - Duplicate methods with different signatures
+
+**See:** `CRITICAL_FIXES_REQUIRED.md` and `ARCHITECTURE_REVIEW_2025-11-30_POST_MILESTONE_5.md`
+
+**Estimated Fix Time:** 2 hours
+
+**Action Required:** Fix critical issues before continuing with remaining Milestone 5 tasks.
 
 ---
 

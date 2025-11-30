@@ -131,26 +131,37 @@ Or use the **AI Configuration Assistant** in the control panel to configure via 
 - [x] Connection abstraction layer (IConnection, WebSocketConnection, ConnectionManager)
 - [x] Property-based tests with fast-check
 
-### Milestone 2: User System (Next)
-- [ ] SQLite database setup
-- [ ] User registration & login
-- [ ] Session management with timeouts
-- [ ] Password hashing with bcrypt
-- [ ] Rate limiting for login attempts
+### Milestone 2: User System ✅ COMPLETE
+- [x] SQLite database setup
+- [x] User registration & login
+- [x] Session management with timeouts
+- [x] Password hashing with bcrypt
+- [x] Rate limiting for login attempts
 
-### Milestone 3: AI Integration (Planned)
-- [ ] AI SysOp agent
-- [ ] AI Configuration Assistant
-- [ ] Control panel
+### Milestone 3: AI Integration ✅ COMPLETE
+- [x] AI SysOp agent
+- [x] AI Configuration Assistant
+- [x] Control panel with dashboard, users, and settings
 
-### Milestone 4: Door Game (Planned)
-- [ ] Door game framework
-- [ ] The Oracle (AI fortune teller)
+### Milestone 4: Door Game ✅ COMPLETE
+- [x] Door game framework
+- [x] The Oracle (AI fortune teller)
+- [x] Door session persistence
 
-### Milestone 5: Polish (Planned)
-- [ ] Message base system
-- [ ] Rate limiting
-- [ ] Security hardening
+### Milestone 5: Polish 🔄 83% COMPLETE
+- [x] Message base system (with critical fixes needed)
+- [x] Rate limiting (messages, AI requests)
+- [x] Input sanitization
+- [x] Control panel features (Users, Message Bases, AI Settings)
+- [ ] Graceful shutdown
+- [ ] UI polish
+
+**Status:** 🔴 **Critical fixes required** - See `CRITICAL_FIXES_REQUIRED.md`
+
+### Milestone 6: Hybrid Architecture 📋 PLANNED
+- [ ] REST API for all BBS operations
+- [ ] WebSocket notifications
+- [ ] Mobile app foundation
 
 ## Technology Stack
 

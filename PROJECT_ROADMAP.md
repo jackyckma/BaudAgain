@@ -13,10 +13,10 @@
 | **2** | ✅ Complete | 100% | User System - Auth & profiles |
 | **3** | ✅ Complete | 100% | AI Integration - Chat & Oracle |
 | **4** | ✅ Complete | 100% | Door Games - Framework & Oracle |
-| **5** | 🔄 In Progress | 30% | Polish & Message Bases |
+| **5** | 🔄 In Progress | 83% | Polish & Message Bases |
 | **6** | 📋 Planned | 0% | Hybrid Architecture (REST + WebSocket) |
 
-**Overall Progress:** 4.30/6 milestones (72%)
+**Overall Progress:** 4.83/6 milestones (81%)
 
 ---
 
@@ -40,17 +40,23 @@ Complete a polished, production-ready BBS with all core features:
 - Message base repository (CRUD operations)
 - Message repository (posts, replies, threading)
 - Database schema for messages
+- MessageHandler implementation (with critical issues to fix)
+- MessageService business logic (with critical issues to fix)
+- Message posting rate limiting
+- Control panel features (100% - All pages complete)
+  - Users management page
+  - Message Bases management page
+  - AI Settings page
+- Input sanitization across all inputs
 
-**🔄 In Progress:**
-- MessageHandler implementation (50%)
-- Message posting and reading flows
-- Control panel features (67% - Message Bases page complete)
+**🔴 Critical Issues (Must Fix):**
+- MessageHandler violates layered architecture
+- ValidationUtils import inconsistency in MessageService
+- MessageService sync/async inconsistency
+- Menu structure duplication
 
 **⏳ Remaining:**
-- MessageService business logic
-- Message posting rate limiting
-- Control panel AI Settings page (Users and Message Bases complete)
-- Input sanitization across all inputs
+- Fix critical architectural issues (2 hours)
 - Graceful shutdown handling
 - UI polish and refinements
 - Multi-user testing

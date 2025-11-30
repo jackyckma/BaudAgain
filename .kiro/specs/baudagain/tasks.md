@@ -616,18 +616,18 @@
   - **Validates: Requirements 15.4**
 
 - [ ] 26. Implement graceful shutdown and offline handling
-- [ ] 26.1 Add graceful shutdown
+- [x] 26.1 Add graceful shutdown
   - Disconnect all active sessions with goodbye message
   - Close database connections
   - Log shutdown event
   - _Requirements: 14.5_
 
-- [ ] 26.2 Add offline message for connection attempts
+- [x] 26.2 Add offline message for connection attempts
   - Display offline message when server is not running
   - Include information about when BBS might return
   - _Requirements: 14.1, 14.4_
 
-- [ ] 26.3 Add reconnection support
+- [x] 26.3 Add reconnection support
   - Allow callers to reconnect after server restart
   - Restore session state where possible
   - _Requirements: 14.3_
