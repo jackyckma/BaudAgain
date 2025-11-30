@@ -637,7 +637,7 @@
   - **Validates: Requirements 14.5**
 
 - [ ] 27. UI polish and refinements
-- [ ] 27.1 Refine ANSI templates
+- [x] 27.1 Refine ANSI templates
   - Create additional ANSI templates (goodbye, menus)
   - Ensure consistent visual style
   - Test rendering in terminal client
