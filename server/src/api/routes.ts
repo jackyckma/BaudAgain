@@ -26,7 +26,69 @@ export async function registerAPIRoutes(
   messageBaseRepository?: MessageBaseRepository,
   messageService?: MessageService
 ) {
-  // Authentication middleware
+  // Authentication middleware (requires any authenticated user)
+  const authenticateUser = async (request: any, reply: any) => {
+    const authHeader = request.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      reply.code(401).send({ 
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Missing or invalid authorization header'
+        }
+      });
+      return;
+    }
+
+    const token = authHeader.substring(7);
+    
+    try {
+      // Verify JWT token
+      const payload = jwtUtil.verifyToken(token);
+      
+      // Attach user info to request
+      request.user = {
+        id: payload.userId,
+        handle: payload.handle,
+        accessLevel: payload.accessLevel,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'Token expired') {
+          reply.code(401).send({ 
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'Token expired'
+            }
+          });
+        } else if (error.message === 'Invalid token') {
+          reply.code(401).send({ 
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'Invalid token'
+            }
+          });
+        } else {
+          reply.code(401).send({ 
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'Authentication failed'
+            }
+          });
+        }
+      } else {
+        reply.code(401).send({ 
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication failed'
+          }
+        });
+      }
+      return;
+    }
+  };
+
+  // Authentication middleware (requires SysOp - for control panel)
   const authenticate = async (request: any, reply: any) => {
     const authHeader = request.headers.authorization;
     
@@ -290,6 +352,252 @@ export async function registerAPIRoutes(
       },
     };
   });
+
+  // ============================================================================
+  // V1 API Endpoints (REST API for BBS operations)
+  // ============================================================================
+
+  // POST /api/v1/auth/register - Register new user
+  server.post('/api/v1/auth/register', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
+    const { handle, password, realName, location, bio } = request.body as {
+      handle: string;
+      password: string;
+      realName?: string;
+      location?: string;
+      bio?: string;
+    };
+    
+    // Validate input
+    if (!handle || !password) {
+      reply.code(400).send({ 
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Handle and password are required'
+        }
+      });
+      return;
+    }
+    
+    if (handle.length < 3 || handle.length > 20) {
+      reply.code(400).send({ 
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Handle must be between 3 and 20 characters'
+        }
+      });
+      return;
+    }
+    
+    if (password.length < 6) {
+      reply.code(400).send({ 
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Password must be at least 6 characters'
+        }
+      });
+      return;
+    }
+    
+    // Check if handle already exists
+    if (userRepository.handleExists(handle)) {
+      reply.code(409).send({ 
+        error: {
+          code: 'CONFLICT',
+          message: 'Handle already exists'
+        }
+      });
+      return;
+    }
+    
+    try {
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+      
+      // Create user
+      const user = userRepository.create(handle, passwordHash, {
+        realName,
+        location,
+        bio,
+        accessLevel: 10, // Default user access level
+      });
+      
+      // Generate JWT token
+      const token = jwtUtil.generateToken({
+        userId: user.id,
+        handle: user.handle,
+        accessLevel: user.accessLevel,
+      });
+      
+      return {
+        token,
+        user: {
+          id: user.id,
+          handle: user.handle,
+          accessLevel: user.accessLevel,
+          createdAt: user.createdAt,
+        },
+      };
+    } catch (error) {
+      reply.code(500).send({ 
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to create user'
+        }
+      });
+    }
+  });
+
+  // POST /api/v1/auth/login - Login with credentials
+  server.post('/api/v1/auth/login', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
+    const { handle, password } = request.body as { handle: string; password: string };
+    
+    if (!handle || !password) {
+      reply.code(400).send({ 
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Handle and password are required'
+        }
+      });
+      return;
+    }
+
+    const user = await userRepository.getUserByHandle(handle);
+    
+    if (!user) {
+      reply.code(401).send({ 
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid credentials'
+        }
+      });
+      return;
+    }
+
+    // Verify password
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+    
+    if (!passwordMatch) {
+      reply.code(401).send({ 
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid credentials'
+        }
+      });
+      return;
+    }
+
+    // Update last login
+    userRepository.updateLastLogin(user.id);
+
+    // Generate JWT token
+    const token = jwtUtil.generateToken({
+      userId: user.id,
+      handle: user.handle,
+      accessLevel: user.accessLevel,
+    });
+    
+    return {
+      token,
+      user: {
+        id: user.id,
+        handle: user.handle,
+        accessLevel: user.accessLevel,
+        lastLogin: user.lastLogin,
+        totalCalls: user.totalCalls,
+      },
+    };
+  });
+
+  // POST /api/v1/auth/refresh - Refresh JWT token
+  server.post('/api/v1/auth/refresh', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
+    const { token: oldToken } = request.body as { token: string };
+    
+    if (!oldToken) {
+      reply.code(400).send({ 
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Token is required'
+        }
+      });
+      return;
+    }
+    
+    try {
+      // Verify old token
+      const payload = jwtUtil.verifyToken(oldToken);
+      
+      // Generate new token
+      const newToken = jwtUtil.generateToken({
+        userId: payload.userId,
+        handle: payload.handle,
+        accessLevel: payload.accessLevel,
+      });
+      
+      return { token: newToken };
+    } catch (error) {
+      reply.code(401).send({ 
+        error: {
+          code: 'UNAUTHORIZED',
+          message: error instanceof Error ? error.message : 'Invalid token'
+        }
+      });
+    }
+  });
+
+  // GET /api/v1/auth/me - Get current user
+  server.get('/api/v1/auth/me', { preHandler: authenticateUser }, async (request, reply) => {
+    const userId = (request as any).user.id;
+    const user = userRepository.findById(userId);
+    
+    if (!user) {
+      reply.code(404).send({ 
+        error: {
+          code: 'NOT_FOUND',
+          message: 'User not found'
+        }
+      });
+      return;
+    }
+    
+    return {
+      id: user.id,
+      handle: user.handle,
+      realName: user.realName,
+      location: user.location,
+      bio: user.bio,
+      accessLevel: user.accessLevel,
+      createdAt: user.createdAt,
+      lastLogin: user.lastLogin,
+      totalCalls: user.totalCalls,
+      totalPosts: user.totalPosts,
+      preferences: user.preferences,
+    };
+  });
+
+  // ============================================================================
+  // Legacy Control Panel Endpoints (backward compatibility)
+  // ============================================================================
 
   // Login endpoint (for control panel authentication)
   // Stricter rate limit: 10 requests per minute

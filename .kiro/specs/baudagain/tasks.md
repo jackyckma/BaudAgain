@@ -696,7 +696,7 @@
   - _Requirements: 17.1_
 
 ### Task 30: Implement Core REST API
-- [ ] 30.1 Add authentication endpoints
+- [x] 30.1 Add authentication endpoints
   - POST /api/auth/login (login with credentials)
   - POST /api/auth/register (create new account)
   - POST /api/auth/refresh (refresh JWT token)
