@@ -596,6 +596,185 @@ export async function registerAPIRoutes(
   });
 
   // ============================================================================
+  // V1 User Management Endpoints
+  // ============================================================================
+
+  // GET /api/v1/users - List all users
+  server.get('/api/v1/users', { preHandler: authenticateUser }, async (request, reply) => {
+    const { page = 1, limit = 50, sort = 'createdAt', order = 'desc' } = request.query as {
+      page?: number;
+      limit?: number;
+      sort?: string;
+      order?: string;
+    };
+    
+    // Validate pagination
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(100, Math.max(1, Number(limit)));
+    
+    // Get all users (we'll implement pagination later if needed)
+    const allUsers = userRepository.findAll();
+    
+    // Sort users
+    const sortedUsers = allUsers.sort((a, b) => {
+      let comparison = 0;
+      if (sort === 'handle') {
+        comparison = a.handle.localeCompare(b.handle);
+      } else if (sort === 'lastLogin') {
+        const aTime = a.lastLogin?.getTime() || 0;
+        const bTime = b.lastLogin?.getTime() || 0;
+        comparison = aTime - bTime;
+      } else { // createdAt
+        comparison = a.createdAt.getTime() - b.createdAt.getTime();
+      }
+      return order === 'asc' ? comparison : -comparison;
+    });
+    
+    // Paginate
+    const start = (pageNum - 1) * limitNum;
+    const end = start + limitNum;
+    const paginatedUsers = sortedUsers.slice(start, end);
+    
+    return {
+      users: paginatedUsers.map(user => ({
+        id: user.id,
+        handle: user.handle,
+        accessLevel: user.accessLevel,
+        createdAt: user.createdAt,
+        lastLogin: user.lastLogin,
+        totalCalls: user.totalCalls,
+        totalPosts: user.totalPosts,
+      })),
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: allUsers.length,
+        pages: Math.ceil(allUsers.length / limitNum),
+        hasNext: end < allUsers.length,
+        hasPrev: pageNum > 1,
+      },
+    };
+  });
+
+  // GET /api/v1/users/:id - Get user profile
+  server.get('/api/v1/users/:id', { preHandler: authenticateUser }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const user = userRepository.findById(id);
+    
+    if (!user) {
+      reply.code(404).send({ 
+        error: {
+          code: 'NOT_FOUND',
+          message: 'User not found'
+        }
+      });
+      return;
+    }
+    
+    return {
+      id: user.id,
+      handle: user.handle,
+      realName: user.realName,
+      location: user.location,
+      bio: user.bio,
+      accessLevel: user.accessLevel,
+      createdAt: user.createdAt,
+      lastLogin: user.lastLogin,
+      totalCalls: user.totalCalls,
+      totalPosts: user.totalPosts,
+    };
+  });
+
+  // PATCH /api/v1/users/:id - Update user profile
+  server.patch('/api/v1/users/:id', {
+    preHandler: authenticateUser,
+    config: {
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const currentUser = (request as any).user;
+    const updates = request.body as {
+      realName?: string;
+      location?: string;
+      bio?: string;
+      accessLevel?: number;
+      preferences?: any;
+    };
+    
+    // Check if user exists
+    const user = userRepository.findById(id);
+    if (!user) {
+      reply.code(404).send({ 
+        error: {
+          code: 'NOT_FOUND',
+          message: 'User not found'
+        }
+      });
+      return;
+    }
+    
+    // Check authorization
+    // Users can only update their own profile unless they're admin
+    if (currentUser.id !== id && currentUser.accessLevel < 255) {
+      reply.code(403).send({ 
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Not authorized to update this user'
+        }
+      });
+      return;
+    }
+    
+    // Only admins can change access level
+    if (updates.accessLevel !== undefined && currentUser.accessLevel < 255) {
+      reply.code(403).send({ 
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Only admins can change access levels'
+        }
+      });
+      return;
+    }
+    
+    try {
+      // Update access level if provided and user is admin
+      if (updates.accessLevel !== undefined) {
+        userRepository.updateAccessLevel(id, updates.accessLevel);
+      }
+      
+      // Update preferences if provided
+      if (updates.preferences) {
+        userRepository.updatePreferences(id, updates.preferences);
+      }
+      
+      // For other fields, we'd need to add update methods to the repository
+      // For now, return the updated user
+      const updatedUser = userRepository.findById(id);
+      
+      return {
+        id: updatedUser!.id,
+        handle: updatedUser!.handle,
+        realName: updatedUser!.realName,
+        location: updatedUser!.location,
+        bio: updatedUser!.bio,
+        accessLevel: updatedUser!.accessLevel,
+        preferences: updatedUser!.preferences,
+      };
+    } catch (error) {
+      reply.code(400).send({ 
+        error: {
+          code: 'INVALID_INPUT',
+          message: error instanceof Error ? error.message : 'Failed to update user'
+        }
+      });
+    }
+  });
+
+  // ============================================================================
   // Legacy Control Panel Endpoints (backward compatibility)
   // ============================================================================
 

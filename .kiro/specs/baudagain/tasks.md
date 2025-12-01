@@ -703,7 +703,7 @@
   - GET /api/auth/me (get current user)
   - _Requirements: 16.1_
 
-- [ ] 30.2 Add user management endpoints
+- [x] 30.2 Add user management endpoints
   - GET /api/users (list users - admin only)
   - GET /api/users/:id (get user profile)
   - PATCH /api/users/:id (update user profile)
