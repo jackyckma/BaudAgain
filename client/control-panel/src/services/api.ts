@@ -150,6 +150,13 @@ class APIClient {
     return this.request<User[]>('/users');
   }
 
+  async updateUserAccessLevel(userId: string, accessLevel: number): Promise<User> {
+    return this.request<User>(`/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ accessLevel }),
+    });
+  }
+
   async getMessageBases(): Promise<MessageBase[]> {
     return this.request<MessageBase[]>('/message-bases');
   }

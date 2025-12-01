@@ -136,6 +136,20 @@ export class UserRepository {
   }
 
   /**
+   * Update user access level
+   */
+  updateAccessLevel(userId: string, accessLevel: number): void {
+    if (accessLevel < 0 || accessLevel > 255) {
+      throw new Error('Access level must be between 0 and 255');
+    }
+    
+    this.db.run(
+      'UPDATE users SET access_level = ? WHERE id = ?',
+      [accessLevel, userId]
+    );
+  }
+
+  /**
    * Get all users
    */
   findAll(): User[] {

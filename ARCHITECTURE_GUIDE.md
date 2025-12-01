@@ -386,6 +386,63 @@ class UserRepository {
 
 ---
 
+### 6.1. Database File Location
+
+**CRITICAL: Single Source of Truth**
+
+**Database Location:** `server/data/bbs.db`
+
+**Why this location:**
+- Server runs from `server/` directory
+- Path `data/bbs.db` is relative to server working directory
+- Results in `server/data/bbs.db` from project root
+- Keeps database with server code
+
+**⚠️ IMPORTANT RULES:**
+
+1. **NEVER create database at project root `data/bbs.db`**
+   - This creates confusion with two database files
+   - Server won't use it
+   - Causes testing issues
+
+2. **Always use relative path `data/bbs.db` in code**
+   - Code: `new BBSDatabase('data/bbs.db', logger)`
+   - Actual file: `server/data/bbs.db` (when running from server/)
+
+3. **Database operations must run from server directory**
+   ```bash
+   # ✅ Correct
+   cd server && npm start
+   
+   # ❌ Wrong - creates database in wrong location
+   npm start  # from project root
+   ```
+
+4. **Manual database operations**
+   ```bash
+   # ✅ Correct path
+   sqlite3 server/data/bbs.db "SELECT * FROM users;"
+   
+   # ❌ Wrong path
+   sqlite3 data/bbs.db "SELECT * FROM users;"
+   ```
+
+**Verification:**
+```bash
+# Check database exists in correct location
+ls -lh server/data/bbs.db
+
+# Should show file with size (not 0 bytes)
+# If 0 bytes or doesn't exist, initialization failed
+```
+
+**Documented in:**
+- `.gitignore` - Ignores `server/data/bbs.db`
+- `ARCHITECTURE_GUIDE.md` - This section
+- `README.md` - Setup instructions
+
+---
+
 ### 7. Terminal Rendering
 
 **Purpose:** Format output for different terminal types

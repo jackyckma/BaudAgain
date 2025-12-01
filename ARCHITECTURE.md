@@ -108,9 +108,19 @@ interface CommandHandler {
 **Purpose**: Database access and persistence
 
 **Components**:
-- `BBSDatabase` - SQLite connection management
+- `BBSDatabase` - SQLite connection management (server/src/db/Database.ts)
 - `UserRepository` - User CRUD operations
-- Additional repositories (planned)
+- `MessageRepository` - Message CRUD operations
+- `MessageBaseRepository` - Message base management
+- `DoorSessionRepository` - Door game session tracking
+
+**Database File Organization**:
+- **SINGLE SOURCE OF TRUTH**: `server/src/db/Database.ts`
+- All repositories import from `../Database.js`
+- Schema definition: `server/src/db/schema.sql`
+- Runtime database file: `data/bbs.db` (created on first run)
+- **DO NOT** create duplicate Database.ts files in other locations
+- **DO NOT** create database files in packages/shared or node_modules
 
 **Key Benefit**: Repository pattern isolates data access
 
@@ -200,10 +210,14 @@ server/src/
 │   ├── WebTerminalRenderer.ts
 │   ├── ANSITerminalRenderer.ts
 │   └── index.ts
-├── db/                      # Data access
-│   ├── Database.ts
-│   └── repositories/
-│       └── UserRepository.ts
+├── db/                      # Data access (SINGLE DATABASE FILE)
+│   ├── Database.ts          # ⚠️ ONLY database class - DO NOT DUPLICATE
+│   ├── schema.sql           # Database schema definition
+│   └── repositories/        # Data access layer
+│       ├── UserRepository.ts
+│       ├── MessageRepository.ts
+│       ├── MessageBaseRepository.ts
+│       └── DoorSessionRepository.ts
 ├── ansi/                    # Legacy ANSI renderer
 │   └── ANSIRenderer.ts
 └── index.ts                 # Server setup
@@ -267,6 +281,30 @@ client/terminal/src/
 - Handlers checked in registration order
 - First match wins (short-circuit evaluation)
 - Async handlers don't block others
+
+## Common Pitfalls to Avoid
+
+### ⚠️ Database File Duplication
+**NEVER** create multiple Database.ts files. The system has ONE database class:
+- **Correct Location**: `server/src/db/Database.ts`
+- **Import Pattern**: `import { BBSDatabase } from '../Database.js'` (from repositories)
+- **Wrong Locations**: packages/shared, node_modules, client directories
+- **Why**: Multiple database files cause connection conflicts, initialization issues, and data inconsistency
+
+### ⚠️ Circular Dependencies
+- Handlers should not import other handlers
+- Use BBSCore for handler communication
+- Repositories should not import handlers
+
+### ⚠️ Session State Mutation
+- Always update session through SessionManager
+- Don't modify session objects directly
+- Use immutable patterns where possible
+
+### ⚠️ Async Handler Errors
+- Always wrap async operations in try-catch
+- Return user-friendly error messages
+- Log detailed errors for debugging
 
 ## Security Considerations
 

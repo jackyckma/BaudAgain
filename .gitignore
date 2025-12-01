@@ -42,6 +42,14 @@ Thumbs.db
 *~
 
 # Database
+# IMPORTANT: Database should ONLY be in server/data/bbs.db
+# The server runs from the server/ directory, so path is relative to that
+server/data/bbs.db
+server/data/bbs.db-journal
+server/data/bbs.db-shm
+server/data/bbs.db-wal
+
+# Legacy/incorrect database locations (should not exist)
 data/bbs.db
 data/bbs.db-journal
 

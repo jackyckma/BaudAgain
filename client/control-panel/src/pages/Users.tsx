@@ -5,6 +5,8 @@ function Users() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editAccessLevel, setEditAccessLevel] = useState<number>(0);
 
   useEffect(() => {
     loadUsers();
@@ -30,6 +32,27 @@ function Users() {
     });
   };
 
+  const startEdit = (user: User) => {
+    setEditingUserId(user.id);
+    setEditAccessLevel(user.accessLevel);
+  };
+
+  const cancelEdit = () => {
+    setEditingUserId(null);
+    setEditAccessLevel(0);
+  };
+
+  const saveAccessLevel = async (userId: string) => {
+    try {
+      await api.updateUserAccessLevel(userId, editAccessLevel);
+      setEditingUserId(null);
+      await loadUsers();
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update access level');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -49,6 +72,12 @@ function Users() {
   return (
     <div>
       <h2 className="text-3xl font-bold text-cyan-400 mb-6">User Management</h2>
+      
+      {error && (
+        <div className="bg-red-900/50 border border-red-500 rounded px-4 py-3 text-red-200 mb-4">
+          {error}
+        </div>
+      )}
       
       <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
         <table className="w-full">
@@ -72,6 +101,9 @@ function Users() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                 Posts
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
@@ -87,8 +119,21 @@ function Users() {
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-300">
-                  {user.accessLevel}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {editingUserId === user.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={editAccessLevel}
+                        onChange={(e) => setEditAccessLevel(parseInt(e.target.value))}
+                        className="w-20 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-gray-100"
+                        min="0"
+                        max="255"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-gray-300">{user.accessLevel}</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-300">
                   {formatDate(user.createdAt)}
@@ -101,6 +146,31 @@ function Users() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-300">
                   {user.totalPosts}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {editingUserId === user.id ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => saveAccessLevel(user.id)}
+                        className="text-green-400 hover:text-green-300"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="text-gray-400 hover:text-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => startEdit(user)}
+                      className="text-cyan-400 hover:text-cyan-300"
+                    >
+                      Edit Access
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

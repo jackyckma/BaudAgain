@@ -123,8 +123,33 @@ export async function registerAPIRoutes(
       return;
     }
 
-    // TODO: Implement updateUserAccessLevel in UserRepository
-    reply.code(501).send({ error: 'Not implemented yet' });
+    try {
+      // Check if user exists
+      const user = userRepository.findById(id);
+      if (!user) {
+        reply.code(404).send({ error: 'User not found' });
+        return;
+      }
+
+      // Update access level
+      userRepository.updateAccessLevel(id, accessLevel);
+      
+      // Return updated user
+      const updatedUser = userRepository.findById(id);
+      return {
+        id: updatedUser!.id,
+        handle: updatedUser!.handle,
+        accessLevel: updatedUser!.accessLevel,
+        createdAt: updatedUser!.createdAt,
+        lastLogin: updatedUser!.lastLogin,
+        totalCalls: updatedUser!.totalCalls,
+        totalPosts: updatedUser!.totalPosts,
+      };
+    } catch (error) {
+      reply.code(400).send({ 
+        error: error instanceof Error ? error.message : 'Failed to update user' 
+      });
+    }
   });
 
   // Message bases endpoints
