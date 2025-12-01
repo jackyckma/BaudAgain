@@ -1,0 +1,861 @@
+openapi: 3.0.3
+info:
+  title: BaudAgain BBS API
+  description: |
+    REST API for BaudAgain BBS - A modern AI-enhanced bulletin board system.
+    
+    ## Authentication
+    Most endpoints require JWT authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <your_jwt_token>
+    ```
+    
+    ## Rate Limiting
+    - Authentication endpoints: 10 requests per minute
+    - Read operations: 100 requests per 15 minutes
+    - Write operations: 30 requests per minute
+    - Message posting: 30 messages per hour
+    
+  version: 1.0.0
+  contact:
+    name: BaudAgain BBS
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: User authentication and registration
+  - name: Users
+    description: User management
+  - name: Message Bases
+    description: Message base management
+  - name: Messages
+    description: Message operations
+  - name: Doors
+    description: Door game operations
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: [INVALID_INPUT, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, RATE_LIMIT_EXCEEDED, INTERNAL_ERROR]
+            message:
+              type: string
+            details:
+              type: object
+      required:
+        - error
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        handle:
+          type: string
+        realName:
+          type: string
+        location:
+          type: string
+        bio:
+          type: string
+        accessLevel:
+          type: integer
+          minimum: 0
+          maximum: 255
+        createdAt:
+          type: string
+          format: date-time
+        lastLogin:
+          type: string
+          format: date-time
+        totalCalls:
+          type: integer
+        totalPosts:
+          type: integer
+        preferences:
+          type: object
+          properties:
+            terminalType:
+              type: string
+            screenWidth:
+              type: integer
+            screenHeight:
+              type: integer
+
+    MessageBase:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        accessLevelRead:
+          type: integer
+          minimum: 0
+          maximum: 255
+        accessLevelWrite:
+          type: integer
+          minimum: 0
+          maximum: 255
+        postCount:
+          type: integer
+        lastPostAt:
+          type: string
+          format: date-time
+        sortOrder:
+          type: integer
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        messageBaseId:
+          type: string
+          format: uuid
+        subject:
+          type: string
+        body:
+          type: string
+        authorId:
+          type: string
+          format: uuid
+        authorHandle:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        parentId:
+          type: string
+          format: uuid
+
+    Door:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        accessLevel:
+          type: integer
+        canAccess:
+          type: boolean
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        pages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register new user
+      description: Create a new user account
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - handle
+                - password
+              properties:
+                handle:
+                  type: string
+                  minLength: 3
+                  maxLength: 20
+                password:
+                  type: string
+                  minLength: 6
+                realName:
+                  type: string
+                location:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Handle already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login
+      description: Authenticate with existing credentials
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - handle
+                - password
+              properties:
+                handle:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh token
+      description: Get a new JWT token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '401':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Get information about the authenticated user
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users:
+    get:
+      tags:
+        - Users
+      summary: List users
+      description: Get list of all users (admin only)
+      operationId: listUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [handle, createdAt, lastLogin]
+            default: createdAt
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not authorized (requires admin)
+
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get user
+      description: Get user profile by ID
+      operationId: getUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+
+    patch:
+      tags:
+        - Users
+      summary: Update user
+      description: Update user profile
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                realName:
+                  type: string
+                location:
+                  type: string
+                bio:
+                  type: string
+                accessLevel:
+                  type: integer
+                  minimum: 0
+                  maximum: 255
+                preferences:
+                  type: object
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403':
+          description: Not authorized
+        '404':
+          description: User not found
+
+  /message-bases:
+    get:
+      tags:
+        - Message Bases
+      summary: List message bases
+      description: Get all message bases
+      operationId: listMessageBases
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of message bases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bases:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MessageBase'
+
+    post:
+      tags:
+        - Message Bases
+      summary: Create message base
+      description: Create new message base (admin only)
+      operationId: createMessageBase
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                accessLevelRead:
+                  type: integer
+                  default: 0
+                accessLevelWrite:
+                  type: integer
+                  default: 10
+                sortOrder:
+                  type: integer
+                  default: 0
+      responses:
+        '201':
+          description: Message base created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageBase'
+        '403':
+          description: Not authorized
+
+  /message-bases/{id}:
+    get:
+      tags:
+        - Message Bases
+      summary: Get message base
+      description: Get message base details
+      operationId: getMessageBase
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Message base details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageBase'
+        '404':
+          description: Message base not found
+
+    patch:
+      tags:
+        - Message Bases
+      summary: Update message base
+      description: Update message base (admin only)
+      operationId: updateMessageBase
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                accessLevelRead:
+                  type: integer
+                accessLevelWrite:
+                  type: integer
+                sortOrder:
+                  type: integer
+      responses:
+        '200':
+          description: Message base updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageBase'
+        '403':
+          description: Not authorized
+        '404':
+          description: Message base not found
+
+    delete:
+      tags:
+        - Message Bases
+      summary: Delete message base
+      description: Delete message base (admin only)
+      operationId: deleteMessageBase
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Message base deleted
+        '403':
+          description: Not authorized
+        '404':
+          description: Message base not found
+
+  /message-bases/{baseId}/messages:
+    get:
+      tags:
+        - Messages
+      summary: List messages
+      description: Get messages in a message base
+      operationId: listMessages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: baseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags:
+        - Messages
+      summary: Post message
+      description: Post new message to message base
+      operationId: postMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: baseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subject
+                - body
+              properties:
+                subject:
+                  type: string
+                  maxLength: 100
+                body:
+                  type: string
+                  maxLength: 5000
+                parentId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Message posted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '403':
+          description: No write access
+        '429':
+          description: Rate limit exceeded
+
+  /messages/{id}:
+    get:
+      tags:
+        - Messages
+      summary: Get message
+      description: Get message details
+      operationId: getMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Message details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '404':
+          description: Message not found
+
+  /doors:
+    get:
+      tags:
+        - Doors
+      summary: List doors
+      description: Get available door games
+      operationId: listDoors
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of doors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  doors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Door'
+
+  /doors/{id}/enter:
+    post:
+      tags:
+        - Doors
+      summary: Enter door
+      description: Enter a door game
+      operationId: enterDoor
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Door entered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId:
+                    type: string
+                    format: uuid
+                  doorId:
+                    type: string
+                  output:
+                    type: string
+                  state:
+                    type: object
+
+  /doors/{id}/input:
+    post:
+      tags:
+        - Doors
+      summary: Send door input
+      description: Send input to door game
+      operationId: sendDoorInput
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+                - input
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                input:
+                  type: string
+      responses:
+        '200':
+          description: Input processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId:
+                    type: string
+                  output:
+                    type: string
+                  state:
+                    type: object
+                  isComplete:
+                    type: boolean
+
+  /doors/{id}/exit:
+    post:
+      tags:
+        - Doors
+      summary: Exit door
+      description: Exit door game
+      operationId: exitDoor
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+      responses:
+        '204':
+          description: Door exited

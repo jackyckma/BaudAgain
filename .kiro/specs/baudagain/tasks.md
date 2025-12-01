@@ -671,25 +671,25 @@
 **Prerequisites:** Milestone 5 complete
 
 ### Task 29: Design REST API
-- [ ] 29.1 Design REST API endpoints for all BBS operations
+- [x] 29.1 Design REST API endpoints for all BBS operations
   - Define endpoint structure (auth, users, messages, doors)
   - Plan request/response formats
   - Document error handling patterns
   - _Requirements: 16.2_
 
-- [ ] 29.2 Define API authentication strategy
+- [x] 29.2 Define API authentication strategy
   - Design JWT token structure
   - Plan token refresh mechanism
   - Maintain backward compatibility with WebSocket auth
   - _Requirements: 16.1_
 
-- [ ] 29.3 Create OpenAPI/Swagger documentation
+- [x] 29.3 Create OpenAPI/Swagger documentation
   - Write OpenAPI 3.0 specification
   - Document all endpoints with examples
   - Include authentication requirements
   - _Requirements: 19.1_
 
-- [ ] 29.4 Plan WebSocket notification events
+- [x] 29.4 Plan WebSocket notification events
   - Define notification event types
   - Design event payload structures
   - Plan subscription mechanism
