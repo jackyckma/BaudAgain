@@ -3,10 +3,11 @@ import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import MessageBases from './pages/MessageBases';
 import AISettings from './pages/AISettings';
+import ConversationStarters from './pages/ConversationStarters';
 import Login from './components/Login';
 import { api } from './services/api';
 
-type Page = 'dashboard' | 'users' | 'messageBases' | 'aiSettings';
+type Page = 'dashboard' | 'users' | 'messageBases' | 'aiSettings' | 'conversationStarters';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -45,6 +46,8 @@ function App() {
         return <MessageBases />;
       case 'aiSettings':
         return <AISettings />;
+      case 'conversationStarters':
+        return <ConversationStarters />;
       default:
         return <Dashboard />;
     }
@@ -109,6 +112,16 @@ function App() {
                 }`}
               >
                 🤖 AI Settings
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setCurrentPage('conversationStarters')}
+                className={`w-full text-left px-6 py-3 hover:bg-gray-700 transition-colors ${
+                  currentPage === 'conversationStarters' ? 'bg-gray-700 text-cyan-400' : 'text-gray-300'
+                }`}
+              >
+                💭 Conversation Starters
               </button>
             </li>
           </ul>

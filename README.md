@@ -139,29 +139,138 @@ Or use the **AI Configuration Assistant** in the control panel to configure via 
 - [x] Rate limiting for login attempts
 
 ### Milestone 3: AI Integration ✅ COMPLETE
-- [x] AI SysOp agent
-- [x] AI Configuration Assistant
-- [x] Control panel with dashboard, users, and settings
+- [x] AI provider abstraction (Anthropic Claude)
+- [x] AI SysOp agent (welcomes users, answers questions)
+- [x] AI Configuration Assistant (natural language configuration) ✅ **COMPLETE**
+- [x] Control panel with dashboard, users, message bases, and AI settings
+
+### Milestone 3.5: Security & Refactoring ✅ COMPLETE
+- [x] JWT-based API authentication
+- [x] Comprehensive rate limiting (global + per-endpoint)
+- [x] Service layer extraction (UserService, AIService)
+- [x] Code deduplication (ValidationUtils)
+- [x] Security hardening
 
 ### Milestone 4: Door Game ✅ COMPLETE
 - [x] Door game framework
 - [x] The Oracle (AI fortune teller)
 - [x] Door session persistence
 
-### Milestone 5: Polish 🔄 87% COMPLETE
-- [x] Message base system (with critical fixes needed)
-- [x] Rate limiting (messages, AI requests)
+### Milestone 5: Polish & Message Bases ✅ COMPLETE
+- [x] Message base system (forums)
+- [x] Message posting and threading
+- [x] Control panel management pages
 - [x] Input sanitization
-- [x] Control panel features (Users, Message Bases, AI Settings)
 - [x] Graceful shutdown
-- [ ] UI polish
+- [x] UI polish and refinements
 
-**Status:** 🔴 **Critical fixes required** - See `CRITICAL_FIXES_REQUIRED.md`
+### Milestone 6: Hybrid Architecture ✅ COMPLETE
+- [x] REST API design (19 endpoints)
+- [x] OpenAPI 3.0 specification
+- [x] WebSocket notification system design
+- [x] Core REST API implementation (18 endpoints)
+  - [x] Authentication endpoints (4)
+  - [x] User management endpoints (3)
+  - [x] Message base endpoints (3)
+  - [x] Message endpoints (4)
+  - [x] Door game endpoints (4)
+- [x] Door session management via API
+- [x] Door state persistence
+- [x] Notification event type system (15 event types)
+- [x] WebSocket notification broadcasting (NotificationService)
+- [x] Real-time message updates
+- [x] Real-time user activity updates
+- [x] Property tests for notifications
+- [x] Terminal client refactoring ✅ **COMPLETE (Dec 3, 2025)**
+  - [x] REST API for all actions
+  - [x] WebSocket for real-time notifications
+  - [x] Graceful fallback to WebSocket-only mode
+  - [x] Preserved BBS user experience
+  - See `TASK_33_TERMINAL_CLIENT_COMPLETE.md` for details
+- [x] API testing and documentation ✅ **COMPLETE (Dec 3, 2025)**
+  - [x] Comprehensive REST API test suite
+  - [x] Postman collection with all endpoints
+  - [x] curl examples in OpenAPI spec
+  - [x] API README with usage guide
+  - [x] Code examples (JavaScript, Python, React)
+  - [x] Performance testing and benchmarking
+  - [x] Mobile app development guide
+- [x] Code quality improvements ✅ **COMPLETE (Dec 3, 2025)**
+  - [x] JWT configuration type safety
+  - [x] DoorHandler encapsulation
+  - [x] Error handling utilities
+  - [x] Terminal renderer refactoring
+- [x] Repository cleanup and organization ✅ **COMPLETE (Dec 3, 2025)**
+  - [x] Documentation audit and inventory
+  - [x] Archive structure creation
+  - [x] Historical documentation archived
+  - [x] Repository cleanliness verified
 
-### Milestone 6: Hybrid Architecture 📋 PLANNED
-- [ ] REST API for all BBS operations
-- [ ] WebSocket notifications
-- [ ] Mobile app foundation
+### Milestone 7: Comprehensive User Testing (Demo Readiness) ⏳ IN PROGRESS (50%)
+- [x] MCP-based testing framework setup ✅
+- [x] Automated user registration flow testing ✅
+- [x] Automated returning user login flow testing ✅
+- [x] Main menu navigation testing ✅
+- [x] Message base functionality testing ✅
+- [x] AI SysOp interaction testing ✅
+- [x] Control panel testing ✅
+- [x] **Fix ANSI frame alignment issues** ✅
+- [x] **ANSI Rendering Refactor - Core Utilities** ✅
+- [-] Door game functionality testing ⚠️ (75% passing - edge cases need fixes)
+- [ ] REST API endpoint validation (deferred to after M7.5)
+- [ ] WebSocket notification testing (deferred to after M7.5)
+- [ ] Error handling and edge case testing (deferred to after M7.5)
+- [ ] Multi-user scenario testing (deferred to after M7.5)
+- [ ] Demo script creation (deferred to after M7.5)
+- [ ] Demo-readiness verification (deferred to after M7.5)
+
+### Milestone 7.5: AI Innovation Features (Hackathon Demo) ✅ COMPLETE
+- [x] **AI-Generated ANSI Art** (4-6 hours) ✅
+  - [x] ANSIArtGenerator service with Claude integration
+  - [x] "Art Studio" door game for interactive art creation
+  - [x] Art gallery with persistence and viewing
+  - [x] REST API endpoints for art generation
+- [x] **AI Message Summarization** (3-5 hours) ✅
+  - [x] MessageSummarizer service with caching
+  - [x] "Summarize Thread" option in message bases
+  - [x] "Catch Me Up" daily digest for returning users
+  - [x] REST API endpoints for summaries
+- [x] **AI Conversation Starters** (3-4 hours) ✅
+  - [x] ConversationStarter service with activity analysis
+  - [x] "Question of the Day" automated posting
+  - [x] Control panel management for conversation starters
+  - [x] REST API endpoints for starter management
+- [x] **Integration Checkpoint** ✅
+  - [x] All three features verified working together
+  - [x] AI API rate limiting tested with multiple features
+  - [x] Features don't interfere with existing functionality
+  - [x] ANSI rendering verified for all new screens
+  - [x] REST API endpoints tested for all features
+  - [x] OpenAPI documentation updated
+
+## Documentation
+
+### API Documentation
+
+- **[API README](server/API_README.md)** - Complete API documentation overview
+- **[OpenAPI Specification](server/openapi.yaml)** - Machine-readable API spec
+- **[curl Examples](server/API_CURL_EXAMPLES.md)** - Comprehensive curl examples for all endpoints
+- **[Code Examples](server/API_CODE_EXAMPLES.md)** - JavaScript, Python, and React integration examples
+- **[Postman Collection](server/BaudAgain-API.postman_collection.json)** - Import into Postman for testing
+
+### Mobile Development
+
+- **[Mobile App Guide](server/MOBILE_APP_GUIDE.md)** - Complete guide for building React Native mobile apps
+
+### Architecture
+
+- **[Architecture Guide](ARCHITECTURE.md)** - System architecture and design patterns
+- **[WebSocket Notifications](WEBSOCKET_NOTIFICATION_DESIGN.md)** - Real-time notification system
+
+### Testing
+
+- **[Testing Guide](TESTING_GUIDE.md)** - Comprehensive testing documentation
+- **[Performance Testing](server/PERFORMANCE_TESTING.md)** - Performance benchmarking guide
 
 ## Technology Stack
 

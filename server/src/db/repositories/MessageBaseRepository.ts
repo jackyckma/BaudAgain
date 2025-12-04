@@ -70,7 +70,8 @@ export class MessageBaseRepository {
    */
   getAllMessageBases(): MessageBase[] {
     const rows = this.db.all<any>(
-      `SELECT * FROM message_bases ORDER BY sort_order ASC, name ASC`
+      `SELECT * FROM message_bases ORDER BY sort_order ASC, name ASC`,
+      []
     );
     
     return rows.map(row => this.mapToMessageBase(row));

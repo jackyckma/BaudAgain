@@ -62,6 +62,8 @@ export interface SessionData {
   menu?: MenuFlowState;
   door?: DoorFlowState;
   message?: MessageFlowState;
+  artGallery?: any; // Art gallery flow state
+  digestAvailable?: boolean; // Whether daily digest is available for this session
 }
 
 export interface Session {

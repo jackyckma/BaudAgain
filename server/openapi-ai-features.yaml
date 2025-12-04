@@ -1,0 +1,554 @@
+# OpenAPI 3.0 Definitions for AI Innovation Features
+# Add these to the main openapi.yaml file
+
+# Add to tags section:
+tags:
+  - name: AI Art
+    description: AI-generated ANSI art creation and gallery
+  - name: AI Summarization
+    description: AI-powered message thread summarization
+  - name: AI Conversation Starters
+    description: AI-generated conversation starters and daily questions
+
+# Add to components.schemas section:
+schemas:
+  ArtPiece:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+      userId:
+        type: string
+        format: uuid
+      authorHandle:
+        type: string
+      content:
+        type: string
+        description: Raw ASCII/ANSI art content
+      coloredContent:
+        type: string
+        description: Art with ANSI color codes applied
+      style:
+        type: string
+        enum: [retro, cyberpunk, fantasy, minimal, classic]
+      description:
+        type: string
+      width:
+        type: integer
+      height:
+        type: integer
+      colorTheme:
+        type: string
+        enum: [monochrome, 16-color, bright]
+      timestamp:
+        type: string
+        format: date-time
+      createdAt:
+        type: string
+        format: date-time
+
+  MessageSummary:
+    type: object
+    properties:
+      messageBaseId:
+        type: string
+        format: uuid
+      messageBaseName:
+        type: string
+      messageCount:
+        type: integer
+      summary:
+        type: string
+        description: Overall summary of the discussion
+      keyPoints:
+        type: array
+        items:
+          type: string
+        description: Key points from the discussion
+      activeTopics:
+        type: array
+        items:
+          type: string
+        description: Active topics being discussed
+      generatedAt:
+        type: string
+        format: date-time
+      cacheKey:
+        type: string
+
+  ConversationStarter:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+      messageBaseId:
+        type: string
+        format: uuid
+      messageBaseName:
+        type: string
+      question:
+        type: string
+        description: The generated question
+      context:
+        type: string
+        description: Context about why this question was generated
+      style:
+        type: string
+        enum: [open-ended, opinion, creative, technical, fun]
+      generatedAt:
+        type: string
+        format: date-time
+      engagementMetrics:
+        type: object
+        properties:
+          views:
+            type: integer
+          replies:
+            type: integer
+          uniqueRepliers:
+            type: integer
+
+# Add to paths section:
+paths:
+  /art/generate:
+    post:
+      tags:
+        - AI Art
+      summary: Generate AI art
+      description: Generate ASCII/ANSI art using AI based on a text description
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - description
+              properties:
+                description:
+                  type: string
+                  description: Text description of the art to generate
+                  example: "a retro computer terminal"
+                style:
+                  type: string
+                  enum: [retro, cyberpunk, fantasy, minimal, classic]
+                  default: retro
+                width:
+                  type: integer
+                  minimum: 10
+                  maximum: 80
+                  default: 60
+                height:
+                  type: integer
+                  minimum: 3
+                  maximum: 40
+                  default: 15
+                applyColors:
+                  type: boolean
+                  default: false
+                colorTheme:
+                  type: string
+                  enum: [monochrome, 16-color, bright]
+                  default: 16-color
+      responses:
+        '200':
+          description: Art generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  art:
+                    $ref: '#/components/schemas/ArtPiece'
+                  framedContent:
+                    type: string
+                    description: Art with decorative frame
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /art:
+    get:
+      tags:
+        - AI Art
+      summary: List saved art
+      description: Get a list of all saved art pieces
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of art pieces
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  art:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ArtPiece'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /art/{id}:
+    get:
+      tags:
+        - AI Art
+      summary: Get art piece
+      description: Get a specific art piece by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Art piece details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  art:
+                    $ref: '#/components/schemas/ArtPiece'
+                  framedContent:
+                    type: string
+        '404':
+          description: Art piece not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - AI Art
+      summary: Delete art piece
+      description: Delete an art piece (owner only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Art piece deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '403':
+          description: Not authorized to delete this art
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Art piece not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /message-bases/{id}/summarize:
+    post:
+      tags:
+        - AI Summarization
+      summary: Generate message summary
+      description: Generate an AI-powered summary of messages in a message base
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Message base ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                maxMessages:
+                  type: integer
+                  default: 50
+                  description: Maximum number of messages to analyze
+                hoursBack:
+                  type: integer
+                  default: 168
+                  description: How many hours back to look for messages
+      responses:
+        '200':
+          description: Summary generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    $ref: '#/components/schemas/MessageSummary'
+                  formatted:
+                    type: object
+                    properties:
+                      plain:
+                        type: string
+                        description: Plain text formatted summary
+                      colored:
+                        type: string
+                        description: ANSI colored formatted summary
+                      framed:
+                        type: string
+                        description: Framed and colored summary
+        '404':
+          description: Message base not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters/generate:
+    post:
+      tags:
+        - AI Conversation Starters
+      summary: Generate conversation starter
+      description: Generate an AI-powered conversation starter question
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - messageBaseId
+              properties:
+                messageBaseId:
+                  type: string
+                  format: uuid
+                  description: Message base to generate question for
+                style:
+                  type: string
+                  enum: [auto, open-ended, opinion, creative, technical, fun]
+                  default: auto
+                  description: Style of question to generate
+      responses:
+        '200':
+          description: Question generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    $ref: '#/components/schemas/ConversationStarter'
+                  formatted:
+                    type: object
+                    properties:
+                      plain:
+                        type: string
+                      colored:
+                        type: string
+                      framed:
+                        type: string
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Message base not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters:
+    get:
+      tags:
+        - AI Conversation Starters
+      summary: List conversation starters
+      description: Get a list of generated conversation starters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: messageBaseId
+          in: query
+          description: Filter by message base ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of conversation starters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConversationStarter'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters/{id}:
+    get:
+      tags:
+        - AI Conversation Starters
+      summary: Get conversation starter
+      description: Get a specific conversation starter with engagement metrics
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Conversation starter details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    $ref: '#/components/schemas/ConversationStarter'
+                  formatted:
+                    type: object
+                    properties:
+                      plain:
+                        type: string
+                      colored:
+                        type: string
+                      framed:
+                        type: string
+        '404':
+          description: Conversation starter not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

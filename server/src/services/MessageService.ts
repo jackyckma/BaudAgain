@@ -7,8 +7,10 @@
 import type { MessageBaseRepository, MessageBase, CreateMessageBaseData } from '../db/repositories/MessageBaseRepository.js';
 import type { MessageRepository, Message, CreateMessageData } from '../db/repositories/MessageRepository.js';
 import type { UserRepository } from '../db/repositories/UserRepository.js';
+import type { NotificationService } from '../notifications/NotificationService.js';
 import { validateLength, sanitizeInput } from '../utils/ValidationUtils.js';
 import { RateLimiter } from '../utils/RateLimiter.js';
+import { NotificationEventType, createNotificationEvent, type MessageNewPayload } from '../notifications/types.js';
 
 export class MessageService {
   private messageRateLimiter: RateLimiter;
@@ -16,7 +18,8 @@ export class MessageService {
   constructor(
     private messageBaseRepo: MessageBaseRepository,
     private messageRepo: MessageRepository,
-    private userRepo: UserRepository
+    private userRepo: UserRepository,
+    private notificationService?: NotificationService
   ) {
     // 30 messages per hour (3600000 ms)
     this.messageRateLimiter = new RateLimiter(30, 3600000);
@@ -78,6 +81,13 @@ export class MessageService {
   }
   
   /**
+   * Get messages in a message base since a specific date
+   */
+  getMessagesSince(baseId: string, since: Date): Message[] {
+    return this.messageRepo.findByBaseIdSince(baseId, since);
+  }
+  
+  /**
    * Get a single message
    */
   getMessage(id: string): Message | null {
@@ -120,7 +130,46 @@ export class MessageService {
     // Increment post count
     this.messageBaseRepo.incrementPostCount(data.baseId);
     
+    // Broadcast new message event if notification service is available
+    if (this.notificationService) {
+      this.broadcastNewMessage(message, data.baseId);
+    }
+    
     return message;
+  }
+  
+  /**
+   * Broadcast new message event to subscribed clients
+   */
+  private broadcastNewMessage(message: Message, baseId: string): void {
+    if (!this.notificationService) {
+      return;
+    }
+    
+    // Get message base details
+    const messageBase = this.messageBaseRepo.getMessageBase(baseId);
+    if (!messageBase) {
+      return;
+    }
+    
+    // Create notification payload
+    const payload: MessageNewPayload = {
+      messageId: message.id,
+      messageBaseId: baseId,
+      messageBaseName: messageBase.name,
+      subject: message.subject,
+      authorHandle: message.authorHandle || 'Unknown',
+      createdAt: message.createdAt.toISOString(),
+    };
+    
+    // Create and broadcast event
+    const event = createNotificationEvent(NotificationEventType.MESSAGE_NEW, payload);
+    
+    // Broadcast asynchronously (don't block message posting)
+    this.notificationService.broadcast(event).catch(error => {
+      // Log error but don't fail the message post
+      console.error('Failed to broadcast new message event:', error);
+    });
   }
   
   /**

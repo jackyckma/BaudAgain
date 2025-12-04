@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api, type AISettings as AISettingsType } from '../services/api';
+import AIChat from '../components/AIChat';
 
 function AISettings() {
   const [settings, setSettings] = useState<AISettingsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -20,6 +22,11 @@ function AISettings() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConfigApplied = () => {
+    // Reload settings after configuration changes
+    loadSettings();
   };
 
   if (loading) {
@@ -162,28 +169,41 @@ function AISettings() {
         </div>
       </div>
 
-      {/* Configuration Note */}
+      {/* AI Configuration Assistant */}
       <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-        <h3 className="text-xl font-bold text-cyan-400 mb-4">Configuration Management</h3>
-        <div className="space-y-3 text-gray-300">
-          <p>
-            AI settings are currently read-only and configured in <code className="bg-gray-700 px-2 py-1 rounded">config.yaml</code>.
-          </p>
-          <p>
-            To modify these settings:
-          </p>
-          <ol className="list-decimal list-inside space-y-2 ml-4">
-            <li>Edit the <code className="bg-gray-700 px-2 py-1 rounded">config.yaml</code> file in your BBS directory</li>
-            <li>Restart the BBS server to apply changes</li>
-            <li>Refresh this page to see updated settings</li>
-          </ol>
-          <div className="mt-4 p-4 bg-yellow-900/30 border border-yellow-700 rounded">
-            <p className="text-sm text-yellow-200">
-              <strong>Future Enhancement:</strong> The AI Configuration Assistant will allow you to modify these settings
-              through a conversational interface without editing files directly.
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-xl font-bold text-cyan-400">Configuration Management</h3>
+            <p className="text-sm text-gray-400 mt-1">
+              Use the AI Configuration Assistant to modify settings through conversation
             </p>
           </div>
+          <button
+            onClick={() => setShowChat(!showChat)}
+            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded transition-colors"
+          >
+            {showChat ? 'Hide Assistant' : 'Open Assistant'}
+          </button>
         </div>
+
+        {showChat ? (
+          <AIChat onConfigApplied={handleConfigApplied} />
+        ) : (
+          <div className="space-y-3 text-gray-300">
+            <p>
+              The AI Configuration Assistant allows you to modify BBS settings through natural language conversation.
+            </p>
+            <p className="text-sm text-gray-400">
+              Click "Open Assistant" above to start configuring your BBS.
+            </p>
+            <div className="mt-4 p-4 bg-blue-900/30 border border-blue-700 rounded">
+              <p className="text-sm text-blue-200">
+                <strong>Note:</strong> You can also manually edit <code className="bg-gray-700 px-2 py-1 rounded">config.yaml</code> 
+                and restart the server to apply changes.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,15 @@
+/**
+ * BaudAgain BBS Terminal Client - Hybrid Architecture
+ * 
+ * Uses REST API for actions and WebSocket for notifications
+ */
+
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
+import { apiClient, type APIError } from './api-client.js';
+import { stateManager, AppState } from './state.js';
+import { NotificationHandler, type NotificationEvent } from './notification-handler.js';
 
 // Create terminal instance
 const terminal = new Terminal({
@@ -33,11 +42,11 @@ const terminal = new Terminal({
   rows: 24,
 });
 
-// Add fit addon for responsive sizing
+// Add fit addon
 const fitAddon = new FitAddon();
 terminal.loadAddon(fitAddon);
 
-// Mount terminal to DOM
+// Mount terminal
 const terminalElement = document.getElementById('terminal');
 if (!terminalElement) {
   throw new Error('Terminal element not found');
@@ -50,102 +59,514 @@ window.addEventListener('resize', () => {
   fitAddon.fit();
 });
 
-// WebSocket connection
+// Initialize notification handler
+const notificationHandler = new NotificationHandler(terminal);
+
+// WebSocket for notifications
 const WS_URL = 'ws://localhost:8080/ws';
 let ws: WebSocket | null = null;
 let inputBuffer = '';
-let echoEnabled = true; // Track whether to echo input
+let echoEnabled = true;
+let awaitingInput = false;
+let currentPrompt = '';
 
-function connect() {
-  terminal.writeln('Connecting to BaudAgain BBS...\r\n');
-  
+// Display helpers
+const colors = {
+  cyan: '\x1b[36m',
+  yellow: '\x1b[1;33m',
+  green: '\x1b[92m',
+  red: '\x1b[91m',
+  reset: '\x1b[0m',
+};
+
+function centerText(text: string, width: number): string {
+  const padding = Math.floor((width - text.length) / 2);
+  return ' '.repeat(padding) + text + ' '.repeat(width - padding - text.length);
+}
+
+function writeError(message: string) {
+  terminal.write(`\r\n${colors.red}✗ ${message}${colors.reset}\r\n`);
+}
+
+function writeSuccess(message: string) {
+  terminal.write(`\r\n${colors.green}✓ ${message}${colors.reset}\r\n`);
+}
+
+function writeInfo(message: string) {
+  terminal.write(`\r\n${colors.cyan}ℹ ${message}${colors.reset}\r\n`);
+}
+
+function prompt(text: string) {
+  currentPrompt = text;
+  awaitingInput = true;
+  terminal.write(`\r\n${text}`);
+}
+
+// Connect WebSocket for notifications
+function connectWebSocket() {
   ws = new WebSocket(WS_URL);
 
   ws.onopen = () => {
-    terminal.writeln('Connected!\r\n');
+    console.log('WebSocket connected for notifications');
   };
 
   ws.onmessage = (event) => {
-    const data = event.data;
-    
-    // Check for echo control sequence: \x1b]8001;{0|1}\x07
-    const echoControlMatch = data.match(/\x1b\]8001;([01])\x07/);
-    if (echoControlMatch) {
-      echoEnabled = echoControlMatch[1] === '1';
-      // Remove the control sequence and write the rest
-      const cleanData = data.replace(/\x1b\]8001;[01]\x07/g, '');
-      if (cleanData) {
-        terminal.write(cleanData);
+    try {
+      const data = JSON.parse(event.data);
+      
+      // Check if it's a notification event
+      if (data.type && data.timestamp) {
+        notificationHandler.handleNotification(data as NotificationEvent);
+      } else {
+        // Fallback: treat as raw ANSI data (for WebSocket-only mode)
+        const rawData = event.data;
+        
+        // Check for echo control
+        const echoControlMatch = rawData.match(/\x1b\]8001;([01])\x07/);
+        if (echoControlMatch) {
+          echoEnabled = echoControlMatch[1] === '1';
+          const cleanData = rawData.replace(/\x1b\]8001;[01]\x07/g, '');
+          if (cleanData) {
+            terminal.write(cleanData);
+          }
+        } else {
+          terminal.write(rawData);
+        }
       }
-    } else {
-      terminal.write(data);
+    } catch (error) {
+      // Not JSON, treat as raw data
+      terminal.write(event.data);
     }
   };
 
   ws.onerror = (error) => {
-    terminal.writeln('\r\n\x1b[31mConnection error!\x1b[0m\r\n');
     console.error('WebSocket error:', error);
   };
 
   ws.onclose = () => {
-    terminal.writeln('\r\n\x1b[33mDisconnected from server.\x1b[0m\r\n');
-    terminal.writeln('Refresh the page to reconnect.\r\n');
+    console.log('WebSocket disconnected');
+    setTimeout(() => {
+      if (stateManager.getState().appState !== AppState.DISCONNECTED) {
+        connectWebSocket();
+      }
+    }, 3000);
   };
 }
 
-// Handle terminal input
+// Handle API errors
+function handleAPIError(error: any) {
+  if (error.error) {
+    const apiError = error as APIError;
+    writeError(apiError.error.message);
+    
+    // Check if it's a network error - enable fallback mode
+    if (apiError.error.code === 'NETWORK_ERROR') {
+      writeInfo('Falling back to WebSocket-only mode...');
+      stateManager.enableFallbackMode();
+    }
+  } else {
+    writeError('An unexpected error occurred');
+    console.error(error);
+  }
+}
+
+// Authentication flows
+async function handleLogin(handle: string, password: string) {
+  try {
+    const response = await apiClient.login(handle, password);
+    apiClient.setToken(response.token);
+    stateManager.setUser(response.user, response.token);
+    
+    writeSuccess(`Welcome back, ${response.user.handle}!`);
+    showMainMenu();
+  } catch (error) {
+    handleAPIError(error);
+    promptForLogin();
+  }
+}
+
+async function handleRegister(handle: string, password: string) {
+  try {
+    const response = await apiClient.register(handle, password);
+    apiClient.setToken(response.token);
+    stateManager.setUser(response.user, response.token);
+    
+    writeSuccess(`Account created! Welcome, ${response.user.handle}!`);
+    showMainMenu();
+  } catch (error) {
+    handleAPIError(error);
+    promptForInitial();
+  }
+}
+
+// Menu displays
+function showMainMenu() {
+  stateManager.setAppState(AppState.IN_MENU);
+  
+  terminal.write('\r\n');
+  terminal.write(colors.cyan + '╔══════════════════════════════════════════════════════════════╗' + colors.reset + '\r\n');
+  terminal.write(colors.cyan + '║' + colors.reset + colors.yellow + centerText('MAIN MENU', 62) + colors.reset + colors.cyan + '║' + colors.reset + '\r\n');
+  terminal.write(colors.cyan + '╠══════════════════════════════════════════════════════════════╣' + colors.reset + '\r\n');
+  terminal.write(colors.cyan + '║' + colors.reset + '                                                              ' + colors.cyan + '║' + colors.reset + '\r\n');
+  terminal.write(colors.cyan + '║' + colors.reset + '  [M] Messages      Read and post messages                    ' + colors.cyan + '║' + colors.reset + '\r\n');
+  terminal.write(colors.cyan + '║' + colors.reset + '  [D] Doors         Play door games                           ' + colors.cyan + '║' + colors.reset + '\r\n');
+  terminal.write(colors.cyan + '║' + colors.reset + '  [G] Goodbye       Disconnect                                ' + colors.cyan + '║' + colors.reset + '\r\n');
+  terminal.write(colors.cyan + '║' + colors.reset + '                                                              ' + colors.cyan + '║' + colors.reset + '\r\n');
+  terminal.write(colors.cyan + '╚══════════════════════════════════════════════════════════════╝' + colors.reset + '\r\n');
+  
+  prompt('Command: ');
+}
+
+// Store message bases for selection
+let messageBases: any[] = [];
+let selectedMessageBase: any = null;
+
+async function showMessageBases() {
+  try {
+    messageBases = await apiClient.getMessageBases();
+    
+    terminal.write('\r\n');
+    terminal.write(colors.cyan + '╔══════════════════════════════════════════════════════════════╗' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '║' + colors.reset + colors.yellow + centerText('MESSAGE BASES', 62) + colors.reset + colors.cyan + '║' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '╠══════════════════════════════════════════════════════════════╣' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '║' + colors.reset + '                                                              ' + colors.cyan + '║' + colors.reset + '\r\n');
+    
+    messageBases.forEach((base, index) => {
+      const line = `  [${index + 1}] ${base.name} (${base.postCount} messages)`;
+      terminal.write(colors.cyan + '║' + colors.reset + line.padEnd(62) + colors.cyan + '║' + colors.reset + '\r\n');
+    });
+    
+    terminal.write(colors.cyan + '║' + colors.reset + '  [Q] Return to main menu                                     ' + colors.cyan + '║' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '║' + colors.reset + '                                                              ' + colors.cyan + '║' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '╚══════════════════════════════════════════════════════════════╝' + colors.reset + '\r\n');
+    
+    stateManager.setAppState(AppState.IN_MESSAGES);
+    prompt('Select base: ');
+  } catch (error) {
+    handleAPIError(error);
+    showMainMenu();
+  }
+}
+
+async function showMessages(baseId: string) {
+  try {
+    const messages = await apiClient.getMessages(baseId);
+    
+    terminal.write('\r\n');
+    terminal.write(colors.cyan + '╔══════════════════════════════════════════════════════════════╗' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '║' + colors.reset + colors.yellow + centerText(selectedMessageBase.name, 62) + colors.reset + colors.cyan + '║' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '╠══════════════════════════════════════════════════════════════╣' + colors.reset + '\r\n');
+    
+    if (messages.length === 0) {
+      terminal.write(colors.cyan + '║' + colors.reset + '  No messages yet. Be the first to post!                     ' + colors.cyan + '║' + colors.reset + '\r\n');
+    } else {
+      messages.forEach((msg, index) => {
+        const line = `  ${index + 1}. ${msg.subject}`;
+        terminal.write(colors.cyan + '║' + colors.reset + line.padEnd(62) + colors.cyan + '║' + colors.reset + '\r\n');
+        const authorLine = `     by ${msg.author} - ${new Date(msg.createdAt).toLocaleDateString()}`;
+        terminal.write(colors.cyan + '║' + colors.reset + authorLine.padEnd(62) + colors.cyan + '║' + colors.reset + '\r\n');
+      });
+    }
+    
+    terminal.write(colors.cyan + '║' + colors.reset + '                                                              ' + colors.cyan + '║' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '║' + colors.reset + '  [P] Post new message                                        ' + colors.cyan + '║' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '║' + colors.reset + '  [Q] Return to message bases                                 ' + colors.cyan + '║' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '╚══════════════════════════════════════════════════════════════╝' + colors.reset + '\r\n');
+    
+    prompt('Command: ');
+  } catch (error) {
+    handleAPIError(error);
+    showMessageBases();
+  }
+}
+
+// Store doors for selection
+let doors: any[] = [];
+let currentDoor: any = null;
+
+async function showDoors() {
+  try {
+    doors = await apiClient.getDoors();
+    
+    terminal.write('\r\n');
+    terminal.write(colors.cyan + '╔══════════════════════════════════════════════════════════════╗' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '║' + colors.reset + colors.yellow + centerText('DOOR GAMES', 62) + colors.reset + colors.cyan + '║' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '╠══════════════════════════════════════════════════════════════╣' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '║' + colors.reset + '                                                              ' + colors.cyan + '║' + colors.reset + '\r\n');
+    
+    doors.forEach((door, index) => {
+      const line = `  [${index + 1}] ${door.name}`;
+      terminal.write(colors.cyan + '║' + colors.reset + line.padEnd(62) + colors.cyan + '║' + colors.reset + '\r\n');
+      const descLine = `      ${door.description}`;
+      terminal.write(colors.cyan + '║' + colors.reset + descLine.padEnd(62) + colors.cyan + '║' + colors.reset + '\r\n');
+    });
+    
+    terminal.write(colors.cyan + '║' + colors.reset + '  [Q] Return to main menu                                     ' + colors.cyan + '║' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '║' + colors.reset + '                                                              ' + colors.cyan + '║' + colors.reset + '\r\n');
+    terminal.write(colors.cyan + '╚══════════════════════════════════════════════════════════════╝' + colors.reset + '\r\n');
+    
+    stateManager.setAppState(AppState.IN_DOOR_SELECTION);
+    prompt('Select door: ');
+  } catch (error) {
+    handleAPIError(error);
+    showMainMenu();
+  }
+}
+
+async function enterDoor(doorId: string) {
+  try {
+    const response = await apiClient.enterDoor(doorId);
+    stateManager.setAppState(AppState.IN_DOOR);
+    stateManager.setCurrentDoor(doorId);
+    
+    terminal.write('\r\n' + response.output + '\r\n');
+    
+    if (response.exited) {
+      await exitDoor();
+    } else {
+      prompt('');
+    }
+  } catch (error) {
+    handleAPIError(error);
+    showDoors();
+  }
+}
+
+async function sendDoorInput(input: string) {
+  if (!currentDoor) return;
+  
+  try {
+    const response = await apiClient.sendDoorInput(currentDoor.id, input);
+    terminal.write('\r\n' + response.output + '\r\n');
+    
+    if (response.exited) {
+      await exitDoor();
+    } else {
+      prompt('');
+    }
+  } catch (error) {
+    handleAPIError(error);
+    await exitDoor();
+  }
+}
+
+async function exitDoor() {
+  if (!currentDoor) return;
+  
+  try {
+    await apiClient.exitDoor(currentDoor.id);
+  } catch (error) {
+    console.error('Error exiting door:', error);
+  }
+  
+  stateManager.setAppState(AppState.IN_MENU);
+  stateManager.setCurrentDoor(null);
+  currentDoor = null;
+  showMainMenu();
+}
+
+// Initial prompts
+function promptForInitial() {
+  terminal.write('\r\n');
+  prompt('Enter your handle (or NEW to register): ');
+}
+
+function promptForLogin() {
+  prompt('Handle: ');
+}
+
+// Command handling
+let authStep: 'initial' | 'handle' | 'password' | 'new-handle' | 'new-password' = 'initial';
+let tempHandle = '';
+let messageStep: 'list' | 'post-subject' | 'post-body' | null = null;
+let tempSubject = '';
+
+async function handleCommand(input: string) {
+  const trimmed = input.trim();
+  
+  if (!stateManager.isAuthenticated()) {
+    // Authentication flow
+    if (authStep === 'initial') {
+      if (trimmed.toUpperCase() === 'NEW') {
+        authStep = 'new-handle';
+        prompt('Choose a handle: ');
+      } else {
+        tempHandle = trimmed;
+        authStep = 'password';
+        echoEnabled = false;
+        prompt('Password: ');
+      }
+    } else if (authStep === 'password') {
+      echoEnabled = true;
+      await handleLogin(tempHandle, trimmed);
+      authStep = 'initial';
+      tempHandle = '';
+    } else if (authStep === 'new-handle') {
+      tempHandle = trimmed;
+      authStep = 'new-password';
+      echoEnabled = false;
+      prompt('Choose a password: ');
+    } else if (authStep === 'new-password') {
+      echoEnabled = true;
+      await handleRegister(tempHandle, trimmed);
+      authStep = 'initial';
+      tempHandle = '';
+    }
+  } else {
+    // Authenticated commands
+    const state = stateManager.getState();
+    
+    if (state.appState === AppState.IN_MENU) {
+      const cmd = trimmed.toUpperCase();
+      if (cmd === 'M') {
+        await showMessageBases();
+      } else if (cmd === 'D') {
+        await showDoors();
+      } else if (cmd === 'G') {
+        writeInfo('Goodbye!');
+        stateManager.setAppState(AppState.DISCONNECTED);
+        apiClient.clearToken();
+        stateManager.clearUser();
+      } else {
+        writeError('Invalid command');
+        showMainMenu();
+      }
+    } else if (state.appState === AppState.IN_MESSAGES) {
+      if (messageStep === null) {
+        // Selecting message base
+        const cmd = trimmed.toUpperCase();
+        if (cmd === 'Q') {
+          showMainMenu();
+        } else {
+          const index = parseInt(trimmed) - 1;
+          if (index >= 0 && index < messageBases.length) {
+            selectedMessageBase = messageBases[index];
+            messageStep = 'list';
+            await showMessages(selectedMessageBase.id);
+          } else {
+            writeError('Invalid selection');
+            await showMessageBases();
+          }
+        }
+      } else if (messageStep === 'list') {
+        // In message list
+        const cmd = trimmed.toUpperCase();
+        if (cmd === 'Q') {
+          messageStep = null;
+          selectedMessageBase = null;
+          await showMessageBases();
+        } else if (cmd === 'P') {
+          messageStep = 'post-subject';
+          prompt('Subject: ');
+        } else {
+          writeError('Invalid command');
+          await showMessages(selectedMessageBase.id);
+        }
+      } else if (messageStep === 'post-subject') {
+        tempSubject = trimmed;
+        messageStep = 'post-body';
+        prompt('Message body: ');
+      } else if (messageStep === 'post-body') {
+        try {
+          await apiClient.postMessage(selectedMessageBase.id, tempSubject, trimmed);
+          writeSuccess('Message posted!');
+          messageStep = 'list';
+          tempSubject = '';
+          await showMessages(selectedMessageBase.id);
+        } catch (error) {
+          handleAPIError(error);
+          messageStep = 'list';
+          tempSubject = '';
+          await showMessages(selectedMessageBase.id);
+        }
+      }
+    } else if (state.appState === AppState.IN_DOOR_SELECTION) {
+      // Door selection
+      const cmd = trimmed.toUpperCase();
+      if (cmd === 'Q') {
+        showMainMenu();
+      } else {
+        const index = parseInt(trimmed) - 1;
+        if (index >= 0 && index < doors.length) {
+          currentDoor = doors[index];
+          await enterDoor(currentDoor.id);
+        } else {
+          writeError('Invalid selection');
+          await showDoors();
+        }
+      }
+    } else if (state.appState === AppState.IN_DOOR) {
+      // Door input handling
+      if (trimmed.toUpperCase() === 'QUIT' || trimmed.toUpperCase() === 'Q') {
+        await exitDoor();
+      } else {
+        await sendDoorInput(trimmed);
+      }
+    }
+  }
+}
+
+// Terminal input handling
 terminal.onData((data) => {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
+  if (!awaitingInput) {
     return;
   }
 
-  // Handle special keys
   if (data === '\r') {
-    // Enter key - send the buffered input
-    ws.send(inputBuffer + '\n');
-    inputBuffer = '';
+    // Enter key
     terminal.write('\r\n');
+    awaitingInput = false;
+    const command = inputBuffer;
+    inputBuffer = '';
+    handleCommand(command);
   } else if (data === '\x7F') {
     // Backspace
     if (inputBuffer.length > 0) {
       inputBuffer = inputBuffer.slice(0, -1);
-      // Only show backspace if echo is enabled
       if (echoEnabled) {
         terminal.write('\b \b');
       }
     }
   } else if (data === '\x03') {
     // Ctrl+C
-    ws.send('\x03');
     inputBuffer = '';
+    terminal.write('\r\n^C\r\n');
+    if (stateManager.isAuthenticated()) {
+      showMainMenu();
+    } else {
+      promptForInitial();
+    }
   } else {
     // Regular character
     inputBuffer += data;
-    // Only echo if echo is enabled (for password masking)
     if (echoEnabled) {
       terminal.write(data);
     }
   }
 });
 
-// Start connection
-connect();
-
-// Display initial message
-const cyan = '\x1b[36m';
-const yellow = '\x1b[1;33m';
-const reset = '\x1b[0m';
-
-// Helper to center text in a box
-function centerText(text: string, width: number): string {
-  const padding = Math.floor((width - text.length) / 2);
-  return ' '.repeat(padding) + text + ' '.repeat(width - padding - text.length);
+// Initialize
+function initialize() {
+  // Display welcome
+  const title = 'BaudAgain BBS Terminal Client';
+  const centeredTitle = centerText(title, 62);
+  
+  terminal.writeln(colors.cyan + '╔══════════════════════════════════════════════════════════════╗' + colors.reset);
+  terminal.writeln(colors.cyan + '║' + colors.reset + colors.yellow + centeredTitle + colors.reset + colors.cyan + '║' + colors.reset);
+  terminal.writeln(colors.cyan + '╚══════════════════════════════════════════════════════════════╝' + colors.reset);
+  terminal.writeln('');
+  
+  writeInfo('Connecting to BaudAgain BBS...');
+  
+  // Connect WebSocket for notifications
+  connectWebSocket();
+  
+  // Set initial state
+  stateManager.setAppState(AppState.CONNECTED);
+  
+  // Start authentication flow
+  promptForInitial();
 }
 
-const title = 'BaudAgain BBS Terminal Client';
-const centeredTitle = centerText(title, 62);
-
-terminal.writeln(cyan + '╔══════════════════════════════════════════════════════════════╗' + reset);
-terminal.writeln(cyan + '║' + reset + yellow + centeredTitle + reset + cyan + '║' + reset);
-terminal.writeln(cyan + '╚══════════════════════════════════════════════════════════════╝' + reset);
-terminal.writeln('');
+// Start the application
+initialize();

@@ -16,6 +16,7 @@ export enum ContentType {
   ERROR = 'error',
   RAW_ANSI = 'raw_ansi',
   ECHO_CONTROL = 'echo_control',
+  LOADING = 'loading',
 }
 
 /**
@@ -96,6 +97,15 @@ export interface EchoControlContent extends TerminalContent {
 }
 
 /**
+ * Loading indicator content
+ */
+export interface LoadingContent extends TerminalContent {
+  type: ContentType.LOADING;
+  message: string;
+  style?: 'spinner' | 'dots' | 'simple';
+}
+
+/**
  * Union type of all content types
  */
 export type AnyTerminalContent =
@@ -105,7 +115,8 @@ export type AnyTerminalContent =
   | PromptContent
   | ErrorContent
   | RawANSIContent
-  | EchoControlContent;
+  | EchoControlContent
+  | LoadingContent;
 
 /**
  * Terminal renderer interface

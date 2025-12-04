@@ -1,0 +1,719 @@
+{
+  "info": {
+    "name": "BaudAgain BBS API",
+    "description": "Complete API collection for BaudAgain BBS - A modern AI-enhanced bulletin board system.\n\n## Getting Started\n\n1. Register a new user or login with existing credentials\n2. Copy the JWT token from the response\n3. Set the `token` variable in the collection variables\n4. All authenticated requests will automatically use the token\n\n## Variables\n\n- `baseUrl`: API base URL (default: http://localhost:8080/api/v1)\n- `token`: JWT authentication token (set after login/register)\n- `userId`: Current user ID (set after login/register)\n- `messageBaseId`: ID of a message base for testing\n- `messageId`: ID of a message for testing\n- `doorId`: ID of a door game (default: the_oracle)\n\n## Rate Limits\n\n- Authentication endpoints: 10 requests per minute\n- Read operations: 100 requests per 15 minutes\n- Write operations: 30 requests per minute\n- Message posting: 30 messages per hour",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "messageBaseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "messageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "doorId",
+      "value": "the_oracle",
+      "type": "string"
+    },
+    {
+      "key": "doorSessionId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register New User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('token', response.token);",
+                  "    pm.collectionVariables.set('userId', response.user.id);",
+                  "    pm.environment.set('token', response.token);",
+                  "    pm.environment.set('userId', response.user.id);",
+                  "    console.log('Token saved:', response.token);",
+                  "    console.log('User ID saved:', response.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"handle\": \"testuser\",\n  \"password\": \"password123\",\n  \"realName\": \"Test User\",\n  \"location\": \"Cyberspace\",\n  \"bio\": \"Just testing the BBS API\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user account. The response includes a JWT token that will be automatically saved to collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('token', response.token);",
+                  "    pm.collectionVariables.set('userId', response.user.id);",
+                  "    pm.environment.set('token', response.token);",
+                  "    pm.environment.set('userId', response.user.id);",
+                  "    console.log('Token saved:', response.token);",
+                  "    console.log('User ID saved:', response.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"handle\": \"testuser\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login with existing credentials. The response includes a JWT token that will be automatically saved."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Get information about the currently authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('token', response.token);",
+                  "    pm.environment.set('token', response.token);",
+                  "    console.log('Token refreshed:', response.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Refresh the JWT token to extend the session."
+          },
+          "response": []
+        }
+      ],
+      "description": "User authentication and registration endpoints"
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=50&sort=createdAt&order=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "sort",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "order",
+                  "value": "desc"
+                }
+              ]
+            },
+            "description": "Get list of all users. Requires admin access level."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "Get user profile by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"realName\": \"Updated Name\",\n  \"location\": \"New Location\",\n  \"bio\": \"Updated bio\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "Update user profile. Users can update their own profile, admins can update any profile."
+          },
+          "response": []
+        }
+      ],
+      "description": "User management endpoints"
+    },
+    {
+      "name": "Message Bases",
+      "item": [
+        {
+          "name": "List Message Bases",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.bases && response.bases.length > 0) {",
+                  "        pm.collectionVariables.set('messageBaseId', response.bases[0].id);",
+                  "        pm.environment.set('messageBaseId', response.bases[0].id);",
+                  "        console.log('Message base ID saved:', response.bases[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/message-bases",
+              "host": ["{{baseUrl}}"],
+              "path": ["message-bases"]
+            },
+            "description": "Get all message bases accessible to the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Message Base",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/message-bases/{{messageBaseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["message-bases", "{{messageBaseId}}"]
+            },
+            "description": "Get details of a specific message base."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Message Base (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('messageBaseId', response.id);",
+                  "    pm.environment.set('messageBaseId', response.id);",
+                  "    console.log('New message base ID saved:', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Forum\",\n  \"description\": \"A test message base\",\n  \"accessLevelRead\": 0,\n  \"accessLevelWrite\": 10,\n  \"sortOrder\": 0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/message-bases",
+              "host": ["{{baseUrl}}"],
+              "path": ["message-bases"]
+            },
+            "description": "Create a new message base. Requires admin access."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Message Base (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Forum Name\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/message-bases/{{messageBaseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["message-bases", "{{messageBaseId}}"]
+            },
+            "description": "Update a message base. Requires admin access."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Message Base (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/message-bases/{{messageBaseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["message-bases", "{{messageBaseId}}"]
+            },
+            "description": "Delete a message base. Requires admin access."
+          },
+          "response": []
+        }
+      ],
+      "description": "Message base management endpoints"
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "List Messages",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.messages && response.messages.length > 0) {",
+                  "        pm.collectionVariables.set('messageId', response.messages[0].id);",
+                  "        pm.environment.set('messageId', response.messages[0].id);",
+                  "        console.log('Message ID saved:', response.messages[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/message-bases/{{messageBaseId}}/messages?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["message-bases", "{{messageBaseId}}", "messages"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Get messages in a message base with pagination."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Message",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "{{messageId}}"]
+            },
+            "description": "Get details of a specific message."
+          },
+          "response": []
+        },
+        {
+          "name": "Post Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('messageId', response.id);",
+                  "    pm.environment.set('messageId', response.id);",
+                  "    console.log('New message ID saved:', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Test Message\",\n  \"body\": \"This is a test message posted via the API.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/message-bases/{{messageBaseId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["message-bases", "{{messageBaseId}}", "messages"]
+            },
+            "description": "Post a new message to a message base."
+          },
+          "response": []
+        },
+        {
+          "name": "Post Reply",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Re: Test Message\",\n  \"body\": \"This is a reply to the test message.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/messages/{{messageId}}/replies",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "{{messageId}}", "replies"]
+            },
+            "description": "Post a reply to an existing message."
+          },
+          "response": []
+        }
+      ],
+      "description": "Message operations endpoints"
+    },
+    {
+      "name": "Door Games",
+      "item": [
+        {
+          "name": "List Doors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/doors",
+              "host": ["{{baseUrl}}"],
+              "path": ["doors"]
+            },
+            "description": "Get list of available door games."
+          },
+          "response": []
+        },
+        {
+          "name": "Enter Door",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('doorSessionId', response.sessionId);",
+                  "    pm.environment.set('doorSessionId', response.sessionId);",
+                  "    console.log('Door session ID saved:', response.sessionId);",
+                  "    console.log('Door output:', response.output);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/doors/{{doorId}}/enter",
+              "host": ["{{baseUrl}}"],
+              "path": ["doors", "{{doorId}}", "enter"]
+            },
+            "description": "Enter a door game and create a session."
+          },
+          "response": []
+        },
+        {
+          "name": "Send Door Input",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": \"What is the meaning of life?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/doors/{{doorId}}/input",
+              "host": ["{{baseUrl}}"],
+              "path": ["doors", "{{doorId}}", "input"]
+            },
+            "description": "Send user input to an active door game session."
+          },
+          "response": []
+        },
+        {
+          "name": "Exit Door",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/doors/{{doorId}}/exit",
+              "host": ["{{baseUrl}}"],
+              "path": ["doors", "{{doorId}}", "exit"]
+            },
+            "description": "Exit an active door game session."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Door Session Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/doors/{{doorId}}/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["doors", "{{doorId}}", "session"]
+            },
+            "description": "Get information about the current user's session in a specific door."
+          },
+          "response": []
+        },
+        {
+          "name": "Resume Door Session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/doors/{{doorId}}/resume",
+              "host": ["{{baseUrl}}"],
+              "path": ["doors", "{{doorId}}", "resume"]
+            },
+            "description": "Resume a previously saved door game session."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Saved Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/doors/my-sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["doors", "my-sessions"]
+            },
+            "description": "Get all saved door sessions for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Door Sessions (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/doors/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["doors", "sessions"]
+            },
+            "description": "Get information about all active door sessions. Requires admin access."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Door Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/doors/{{doorId}}/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["doors", "{{doorId}}", "stats"]
+            },
+            "description": "Get statistics about a specific door game."
+          },
+          "response": []
+        }
+      ],
+      "description": "Door game operations endpoints"
+    },
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Send System Announcement (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Server maintenance scheduled for tonight at 10 PM\",\n  \"priority\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/system/announcement",
+              "host": ["{{baseUrl}}"],
+              "path": ["system", "announcement"]
+            },
+            "description": "Broadcast a system announcement to all authenticated users. Requires admin access."
+          },
+          "response": []
+        }
+      ],
+      "description": "System administration endpoints"
+    }
+  ]
+}

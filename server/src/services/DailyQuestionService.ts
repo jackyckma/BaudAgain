@@ -1,0 +1,302 @@
+/**
+ * Daily Question Service
+ * 
+ * Manages the "Question of the Day" feature, including:
+ * - Scheduled daily question generation
+ * - Question posting to message bases
+ * - Engagement tracking
+ * - History management
+ */
+
+import type { FastifyBaseLogger } from 'fastify';
+import { ConversationStarter, type GeneratedQuestion } from './ConversationStarter.js';
+import type { MessageRepository } from '../db/repositories/MessageRepository.js';
+import type { MessageBaseRepository } from '../db/repositories/MessageBaseRepository.js';
+import type { UserRepository } from '../db/repositories/UserRepository.js';
+
+export interface DailyQuestionConfig {
+  enabled: boolean;
+  schedule: string; // HH:MM format
+  targetMessageBaseId?: string;
+  questionStyle: 'auto' | 'open-ended' | 'opinion' | 'creative' | 'technical' | 'fun';
+  aiPersonality?: string;
+}
+
+export interface QuestionHistory {
+  id: string;
+  messageBaseId: string;
+  messageBaseName: string;
+  question: string;
+  style: string;
+  generatedAt: Date;
+  postedAt?: Date;
+  messageId?: string;
+  engagementMetrics?: {
+    views: number;
+    replies: number;
+    uniqueRepliers: number;
+  };
+}
+
+export class DailyQuestionService {
+  private readonly AI_SYSOP_HANDLE = 'AI_SysOp';
+  private questionHistory: QuestionHistory[] = [];
+
+  constructor(
+    private conversationStarter: ConversationStarter,
+    private messageRepository: MessageRepository,
+    private messageBaseRepository: MessageBaseRepository,
+    private userRepository: UserRepository,
+    private logger: FastifyBaseLogger
+  ) {}
+
+  /**
+   * Generate and post a daily question
+   */
+  async generateAndPostDailyQuestion(
+    config: DailyQuestionConfig
+  ): Promise<QuestionHistory> {
+    this.logger.info('Generating daily question');
+
+    try {
+      // Determine target message base
+      const messageBase = config.targetMessageBaseId
+        ? this.messageBaseRepository.getMessageBase(config.targetMessageBaseId)
+        : this.getDefaultMessageBase();
+
+      if (!messageBase) {
+        throw new Error('No target message base configured or available');
+      }
+
+      // Get recent messages for context
+      const recentMessages = this.messageRepository.findByBaseIdSince(
+        messageBase.id,
+        new Date(Date.now() - 72 * 60 * 60 * 1000) // last 72 hours
+      );
+
+      // Generate question
+      const question = await this.conversationStarter.generateQuestion({
+        messageBaseId: messageBase.id,
+        messageBaseName: messageBase.name,
+        recentMessages,
+        style: config.questionStyle,
+      });
+
+      // Get AI SysOp user
+      const aiSysOp = this.getOrCreateAISysOp();
+
+      // Post question to message base
+      const message = this.messageRepository.createMessage({
+        baseId: messageBase.id,
+        userId: aiSysOp.id,
+        subject: '💭 Question of the Day',
+        body: this.formatQuestionForPost(question),
+      });
+
+      // Create history entry
+      const historyEntry: QuestionHistory = {
+        id: question.id,
+        messageBaseId: messageBase.id,
+        messageBaseName: messageBase.name,
+        question: question.question,
+        style: question.style,
+        generatedAt: question.generatedAt,
+        postedAt: new Date(),
+        messageId: message.id,
+        engagementMetrics: {
+          views: 0,
+          replies: 0,
+          uniqueRepliers: 0,
+        },
+      };
+
+      this.questionHistory.push(historyEntry);
+
+      this.logger.info(
+        {
+          questionId: question.id,
+          messageBaseId: messageBase.id,
+          messageId: message.id,
+        },
+        'Daily question posted successfully'
+      );
+
+      return historyEntry;
+    } catch (error) {
+      this.logger.error({ error }, 'Failed to generate and post daily question');
+      throw error;
+    }
+  }
+
+  /**
+   * Format question for posting to message base
+   */
+  private formatQuestionForPost(question: GeneratedQuestion): string {
+    const lines: string[] = [];
+    
+    lines.push('\x1b[36m╔══════════════════════════════════════════════════════════════╗\x1b[0m');
+    lines.push('\x1b[36m║\x1b[0m           \x1b[33m✨ QUESTION OF THE DAY ✨\x1b[0m                    \x1b[36m║\x1b[0m');
+    lines.push('\x1b[36m╚══════════════════════════════════════════════════════════════╝\x1b[0m');
+    lines.push('');
+    lines.push(`\x1b[37m${question.question}\x1b[0m`);
+    lines.push('');
+    lines.push(`\x1b[35m💬 Share your thoughts below!\x1b[0m`);
+    lines.push('');
+    lines.push(`\x1b[90m─────────────────────────────────────────────────────────────\x1b[0m`);
+    lines.push(`\x1b[90mGenerated by AI SysOp | Style: ${question.style}\x1b[0m`);
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Get or create AI SysOp user
+   */
+  private getOrCreateAISysOp() {
+    let aiSysOp = this.userRepository.findByHandle(this.AI_SYSOP_HANDLE);
+
+    if (!aiSysOp) {
+      // Create AI SysOp user
+      aiSysOp = this.userRepository.create(
+        this.AI_SYSOP_HANDLE,
+        '', // AI SysOp doesn't need a password
+        {
+          accessLevel: 255, // Maximum access level
+          realName: 'AI System Operator',
+          bio: 'I\'m the AI assistant helping to keep conversations flowing!',
+        }
+      );
+
+      this.logger.info({ userId: aiSysOp.id }, 'Created AI SysOp user');
+    }
+
+    return aiSysOp;
+  }
+
+  /**
+   * Get default message base (first available)
+   */
+  private getDefaultMessageBase() {
+    const messageBases = this.messageBaseRepository.getAllMessageBases();
+    return messageBases.length > 0 ? messageBases[0] : null;
+  }
+
+  /**
+   * Get question history
+   */
+  getQuestionHistory(limit?: number): QuestionHistory[] {
+    const history = [...this.questionHistory].sort(
+      (a, b) => b.generatedAt.getTime() - a.generatedAt.getTime()
+    );
+
+    return limit ? history.slice(0, limit) : history;
+  }
+
+  /**
+   * Get a specific question from history
+   */
+  getQuestion(questionId: string): QuestionHistory | undefined {
+    return this.questionHistory.find(q => q.id === questionId);
+  }
+
+  /**
+   * Update engagement metrics for a question
+   */
+  async updateEngagementMetrics(questionId: string): Promise<void> {
+    const question = this.questionHistory.find(q => q.id === questionId);
+    if (!question || !question.messageId) {
+      return;
+    }
+
+    try {
+      // Get replies to the question message
+      const replies = this.messageRepository.getReplies(question.messageId);
+      
+      // Calculate metrics
+      const uniqueRepliers = new Set(replies.map(r => r.userId)).size;
+
+      question.engagementMetrics = {
+        views: 0, // Would need view tracking implementation
+        replies: replies.length,
+        uniqueRepliers,
+      };
+
+      this.logger.debug(
+        {
+          questionId,
+          replies: replies.length,
+          uniqueRepliers,
+        },
+        'Updated engagement metrics'
+      );
+    } catch (error) {
+      this.logger.error(
+        { questionId, error },
+        'Failed to update engagement metrics'
+      );
+    }
+  }
+
+  /**
+   * Get engagement statistics
+   */
+  getEngagementStats(): {
+    totalQuestions: number;
+    totalReplies: number;
+    averageRepliesPerQuestion: number;
+    mostEngagingStyle: string;
+  } {
+    const totalQuestions = this.questionHistory.length;
+    const totalReplies = this.questionHistory.reduce(
+      (sum, q) => sum + (q.engagementMetrics?.replies || 0),
+      0
+    );
+    const averageRepliesPerQuestion = totalQuestions > 0
+      ? totalReplies / totalQuestions
+      : 0;
+
+    // Find most engaging style
+    const styleStats = new Map<string, { count: number; replies: number }>();
+    
+    this.questionHistory.forEach(q => {
+      const stats = styleStats.get(q.style) || { count: 0, replies: 0 };
+      stats.count++;
+      stats.replies += q.engagementMetrics?.replies || 0;
+      styleStats.set(q.style, stats);
+    });
+
+    let mostEngagingStyle = 'none';
+    let highestAverage = 0;
+
+    styleStats.forEach((stats, style) => {
+      const average = stats.replies / stats.count;
+      if (average > highestAverage) {
+        highestAverage = average;
+        mostEngagingStyle = style;
+      }
+    });
+
+    return {
+      totalQuestions,
+      totalReplies,
+      averageRepliesPerQuestion,
+      mostEngagingStyle,
+    };
+  }
+
+  /**
+   * Clear old history (keep last N questions)
+   */
+  pruneHistory(keepLast: number = 30): void {
+    if (this.questionHistory.length > keepLast) {
+      const sorted = [...this.questionHistory].sort(
+        (a, b) => b.generatedAt.getTime() - a.generatedAt.getTime()
+      );
+      this.questionHistory = sorted.slice(0, keepLast);
+      
+      this.logger.info(
+        { kept: keepLast, pruned: sorted.length - keepLast },
+        'Pruned question history'
+      );
+    }
+  }
+}

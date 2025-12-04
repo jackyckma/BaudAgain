@@ -48,3 +48,12 @@ messageBases: []
 
 # Door games configuration
 doors: []
+
+# AI Innovation Features
+aiFeatures:
+  dailyQuestion:
+    enabled: false  # Enable/disable daily question feature
+    schedule: "09:00"  # Time to post daily question (HH:MM format, 24-hour)
+    targetMessageBaseId: null  # null = use first available message base
+    questionStyle: "auto"  # Options: auto, open-ended, opinion, creative, technical, fun
+    aiPersonality: null  # null = use default conversation starter personality

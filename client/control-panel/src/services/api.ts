@@ -185,6 +185,30 @@ class APIClient {
     return this.request<AISettings>('/ai-settings');
   }
 
+  async chatWithConfigAssistant(message: string): Promise<{ response: string; change?: { description: string; preview: string } }> {
+    return this.request<{ response: string; change?: { description: string; preview: string } }>('/v1/config/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  }
+
+  async applyConfigChange(change: { description: string; preview: string; changes?: any }): Promise<{ success: boolean; message: string; requiresRestart?: boolean }> {
+    return this.request<{ success: boolean; message: string; requiresRestart?: boolean }>('/v1/config/apply', {
+      method: 'POST',
+      body: JSON.stringify({ change }),
+    });
+  }
+
+  async getConfigHistory(): Promise<{ history: Array<{ role: string; content: string }> }> {
+    return this.request<{ history: Array<{ role: string; content: string }> }>('/v1/config/history');
+  }
+
+  async resetConfigConversation(): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>('/v1/config/reset', {
+      method: 'POST',
+    });
+  }
+
   isAuthenticated(): boolean {
     return this.token !== null;
   }

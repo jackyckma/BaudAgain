@@ -38,6 +38,11 @@ export class MenuHandler implements CommandHandler {
           description: 'Play interactive games',
         },
         {
+          key: 'A',
+          label: 'Art Gallery',
+          description: 'View AI-generated ANSI art',
+        },
+        {
           key: 'P',
           label: 'Page SysOp',
           description: 'Get help from the AI SysOp',
@@ -85,6 +90,11 @@ export class MenuHandler implements CommandHandler {
     // Special commands
     if (upperCommand === 'MENU' || upperCommand === '?') {
       return this.displayMenu(currentMenuId);
+    }
+
+    // Handle DIGEST command
+    if (upperCommand === 'DIGEST') {
+      return this.handleDigestCommand(session);
     }
 
     // Handle menu selection
@@ -243,19 +253,120 @@ export class MenuHandler implements CommandHandler {
     const question = input.trim() || undefined;
     const handle = session.handle || 'User';
     
-    // Show "thinking" message
-    const thinking = '\r\n\x1b[36mThe SysOp is responding...\x1b[0m\r\n\r\n';
-    
-    // Get AI response using helper (with 5 second timeout as per requirements)
-    const aiOutput = await AIResponseHelper.renderAIResponse(
+    // Get AI response using helper with 5 second timeout (as per requirements)
+    const aiOutput = await AIResponseHelper.renderAIResponseWithTimeout(
       this.deps.aiSysOp,
       () => this.deps.aiSysOp!.respondToPage(handle, question),
       this.deps.renderer,
       'The SysOp is temporarily unavailable. Please try again later.',
-      false  // Don't wrap with newlines
+      5000,  // 5 second timeout as per requirements
+      false,  // Don't wrap with newlines
+      'The SysOp is responding...'
     );
     
-    return thinking + aiOutput + '\r\n' + this.displayMenu('main');
+    return '\r\n' + aiOutput + '\r\n' + this.displayMenu('main');
+  }
+
+  /**
+   * Handle DIGEST command to show daily digest
+   */
+  private async handleDigestCommand(session: Session): Promise<string> {
+    // Check if digest is available
+    if (!session.data.digestAvailable) {
+      return this.displayMenuWithMessage(
+        'main',
+        '\r\n\x1b[33mNo daily digest available. You need to be away for at least 24 hours.\x1b[0m\r\n',
+        'warning'
+      );
+    }
+
+    // Check if required services are available
+    if (
+      !this.deps.dailyDigestService ||
+      !this.deps.messageRepository ||
+      !this.deps.messageBaseRepository ||
+      !session.userId
+    ) {
+      return this.displayMenuWithMessage(
+        'main',
+        '\r\n\x1b[33mDaily digest service is not available.\x1b[0m\r\n',
+        'warning'
+      );
+    }
+
+    try {
+      // Get user's last login from session or database
+      const user = await this.deps.userService!.getUserById(session.userId);
+      if (!user || !user.lastLogin) {
+        return this.displayMenuWithMessage(
+          'main',
+          '\r\n\x1b[33mUnable to retrieve your last login information.\x1b[0m\r\n',
+          'warning'
+        );
+      }
+
+      // Show loading message
+      const loadingMessage: MessageContent = {
+        type: ContentType.MESSAGE,
+        text: '\r\n\x1b[36mGenerating your daily digest...\x1b[0m\r\n',
+        style: 'info',
+      };
+      let output = this.deps.renderer.render(loadingMessage);
+
+      // Get all message bases
+      const allBases = this.deps.messageBaseRepository.getAllMessageBases();
+
+      // Get new messages since last login for each base
+      const messageBasesWithActivity = [];
+      for (const base of allBases) {
+        const newMessages = this.deps.messageRepository.findByBaseIdSince(
+          base.id,
+          user.lastLogin
+        );
+
+        if (newMessages.length > 0) {
+          messageBasesWithActivity.push({
+            base,
+            newMessages,
+          });
+        }
+      }
+
+      // Generate digest if there's activity
+      if (messageBasesWithActivity.length === 0) {
+        return this.displayMenuWithMessage(
+          'main',
+          '\r\n\x1b[33mNo new activity since your last visit.\x1b[0m\r\n',
+          'warning'
+        );
+      }
+
+      const digest = await this.deps.dailyDigestService.generateDigest({
+        userId: user.id,
+        lastLogin: user.lastLogin,
+        messageBasesWithActivity,
+      });
+
+      const formatted = this.deps.dailyDigestService.formatDigest(digest);
+      output += '\r\n' + formatted.framed + '\r\n\r\n';
+
+      // Clear the digest available flag after showing it
+      this.deps.sessionManager.updateSession(session.id, {
+        data: {
+          ...session.data,
+          digestAvailable: false,
+        },
+      });
+
+      return output + this.displayMenu('main');
+    } catch (error) {
+      console.error('Error generating daily digest:', error);
+      return this.displayMenuWithMessage(
+        'main',
+        '\r\n\x1b[31mError generating daily digest. Please try again later.\x1b[0m\r\n',
+        'warning'
+      );
+    }
   }
 
   /**

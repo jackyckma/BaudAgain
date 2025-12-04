@@ -1,13 +1,26 @@
 # BaudAgain BBS Architecture
 
+**Last Updated:** December 4, 2025  
+**Status:** Milestone 6 Complete (100%) - Hybrid Architecture Fully Implemented ✅  
+**Latest:** ANSI Rendering Refactor Section 1 Complete - Core Utilities ✅
+
 ## Overview
 
 BaudAgain is built with a layered architecture that separates concerns and enables extensibility. The system follows the Chain of Responsibility pattern for command routing and uses dependency injection throughout.
 
+The architecture has evolved to support a **hybrid approach**: REST API for user actions and WebSocket for real-time notifications, while maintaining the authentic BBS terminal experience.
+
 ## High-Level Flow
 
+### Traditional BBS Flow (WebSocket)
 ```
 User Input → WebSocket → Connection Layer → Session Layer → BBSCore → Handler → Response
+```
+
+### Hybrid Architecture Flow (REST + WebSocket)
+```
+User Actions → REST API → Handler → Response (JSON)
+Server Events → WebSocket → Notification Service → Client Updates
 ```
 
 ## Architecture Layers
@@ -89,7 +102,7 @@ interface CommandHandler {
 
 ### 5. Terminal Rendering Layer
 
-**Location**: `server/src/terminal/`, `packages/shared/src/terminal.ts`
+**Location**: `server/src/terminal/`, `server/src/ansi/`, `packages/shared/src/terminal.ts`
 
 **Purpose**: Separate content from presentation
 
@@ -99,7 +112,24 @@ interface CommandHandler {
 - `WebTerminalRenderer` - Renders for xterm.js
 - `ANSITerminalRenderer` - Renders for raw ANSI terminals
 
-**Key Benefit**: Handlers create structured content, renderers handle formatting
+**ANSI Utilities** (New - Dec 4, 2025):
+- `ANSIWidthCalculator` - Calculates visual width of strings with ANSI codes
+  - Strips ANSI escape codes (which take no visual space)
+  - Handles Unicode character widths (emoji, CJK characters)
+  - Handles box-drawing characters
+- `ANSIColorizer` - Manages color application and conversion
+  - Named color API (red, green, blue, yellow, cyan, magenta, white, gray)
+  - Automatic reset code insertion
+  - ANSI to HTML conversion for web contexts
+  - ANSI code stripping
+- `ANSIValidator` - Validates output formatting
+  - Frame alignment validation (all lines same width)
+  - Border integrity checking
+  - Detailed error messages with line numbers
+- `ANSIFrameBuilder` - Builds bordered frames with proper alignment
+- `ANSIFrameValidator` - Validates frame structure for testing
+
+**Key Benefit**: Handlers create structured content, renderers handle formatting with proper ANSI support
 
 ### 6. Data Layer
 
@@ -218,7 +248,14 @@ server/src/
 │       ├── MessageRepository.ts
 │       ├── MessageBaseRepository.ts
 │       └── DoorSessionRepository.ts
-├── ansi/                    # Legacy ANSI renderer
+├── ansi/                    # ANSI rendering utilities
+│   ├── ANSIRenderer.ts      # Main ANSI renderer
+│   ├── ANSIFrameBuilder.ts  # Frame construction
+│   ├── ANSIFrameValidator.ts # Frame validation
+│   ├── ANSIWidthCalculator.ts # Visual width calculation
+│   ├── ANSIColorizer.ts     # Color management
+│   ├── ANSIValidator.ts     # Output validation
+│   └── visual-regression.test.ts # Visual tests
 │   └── ANSIRenderer.ts
 └── index.ts                 # Server setup
 
@@ -423,7 +460,362 @@ client/terminal/src/
 - `EchoControlContent` - Control terminal echo on/off
 - Enhanced `PromptContent` with echo control
 
+## Hybrid Architecture (Milestone 6)
+
+### Overview
+
+Milestone 6 introduces a hybrid architecture that combines REST API for actions with WebSocket for real-time notifications. This provides the best of both worlds:
+
+- **REST API**: Testable, stateless, standard HTTP operations
+- **WebSocket**: Real-time notifications for live updates
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Client Applications                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │   Terminal   │  │ Control Panel│  │  Mobile App  │     │
+│  │   Client     │  │   (React)    │  │ (React Native│     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│         │                  │                  │             │
+│         │ REST API         │ REST API         │ REST API   │
+│         │ WebSocket        │ WebSocket        │ WebSocket  │
+└─────────┼──────────────────┼──────────────────┼─────────────┘
+          │                  │                  │
+          ▼                  ▼                  ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    BBS Server (Node.js)                      │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │              REST API Layer                            │  │
+│  │  • Authentication (JWT)                                │  │
+│  │  • User Management                                     │  │
+│  │  • Message Operations                                  │  │
+│  │  • Door Game Operations                                │  │
+│  │  • Rate Limiting                                       │  │
+│  └───────────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │              WebSocket Layer                           │  │
+│  │  • Connection Management                               │  │
+│  │  • Notification Broadcasting                           │  │
+│  │  • Event Subscriptions                                 │  │
+│  │  • Fallback Command Handling                           │  │
+│  └───────────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │              Notification Service                      │  │
+│  │  • Event Types (MESSAGE_NEW, USER_JOINED, etc.)       │  │
+│  │  • Subscription Management                             │  │
+│  │  • Broadcast Logic                                     │  │
+│  └───────────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │              Service Layer                             │  │
+│  │  • UserService                                         │  │
+│  │  • MessageService                                      │  │
+│  │  • SessionService                                      │  │
+│  │  • DoorService                                         │  │
+│  └───────────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │              Data Layer                                │  │
+│  │  • Repositories (User, Message, Door)                 │  │
+│  │  • SQLite Database                                     │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### REST API Design
+
+**Base URL**: `http://localhost:8080/api/v1`
+
+**Authentication**: JWT tokens in `Authorization: Bearer <token>` header
+
+**Endpoint Categories**:
+
+1. **Authentication** (`/auth`)
+   - `POST /auth/register` - Register new user
+   - `POST /auth/login` - Login and get JWT token
+   - `POST /auth/refresh` - Refresh JWT token
+   - `GET /auth/me` - Get current user info
+
+2. **Users** (`/users`)
+   - `GET /users` - List users (admin only)
+   - `GET /users/:id` - Get user profile
+   - `PATCH /users/:id` - Update user profile
+
+3. **Message Bases** (`/message-bases`)
+   - `GET /message-bases` - List message bases
+   - `GET /message-bases/:id` - Get message base details
+   - `POST /message-bases` - Create message base (admin)
+   - `PATCH /message-bases/:id` - Update message base (admin)
+   - `DELETE /message-bases/:id` - Delete message base (admin)
+
+4. **Messages** (`/messages`)
+   - `GET /message-bases/:baseId/messages` - List messages
+   - `GET /messages/:id` - Get message details
+   - `POST /message-bases/:baseId/messages` - Post new message
+   - `POST /messages/:id/replies` - Post reply
+
+5. **Door Games** (`/doors`)
+   - `GET /doors` - List available doors
+   - `POST /doors/:id/enter` - Enter door game
+   - `POST /doors/:id/input` - Send input to door
+   - `POST /doors/:id/exit` - Exit door game
+   - `GET /doors/:id/session` - Get session info
+   - `POST /doors/:id/resume` - Resume saved session
+
+6. **System** (`/system`)
+   - `POST /system/announcement` - Send system announcement (admin)
+
+**Response Format**:
+```json
+{
+  "data": { ... },
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable message",
+    "details": {}
+  }
+}
+```
+
+**Error Codes**:
+- `INVALID_INPUT` (400) - Invalid request data
+- `UNAUTHORIZED` (401) - Not authenticated
+- `FORBIDDEN` (403) - Not authorized
+- `NOT_FOUND` (404) - Resource not found
+- `CONFLICT` (409) - Resource conflict
+- `RATE_LIMIT_EXCEEDED` (429) - Rate limit exceeded
+- `INTERNAL_ERROR` (500) - Server error
+
+### WebSocket Notification System
+
+**Connection**: `ws://localhost:8080`
+
+**Authentication**: Send auth message with JWT token after connecting
+
+**Event Types**:
+- `MESSAGE_NEW` - New message posted
+- `USER_JOINED` - User logged in
+- `USER_LEFT` - User logged out
+- `SYSTEM_ANNOUNCEMENT` - System announcement
+- `DOOR_UPDATE` - Door game update
+
+**Subscription Model**:
+```javascript
+// Subscribe to specific events
+ws.send(JSON.stringify({
+  type: 'subscribe',
+  events: ['MESSAGE_NEW', 'USER_JOINED', 'USER_LEFT']
+}));
+```
+
+**Notification Format**:
+```json
+{
+  "type": "MESSAGE_NEW",
+  "timestamp": "2025-12-03T10:00:00.000Z",
+  "data": {
+    "messageId": "...",
+    "messageBaseId": "...",
+    "messageBaseName": "General Discussion",
+    "subject": "Hello!",
+    "authorId": "...",
+    "authorHandle": "testuser"
+  }
+}
+```
+
+### API Patterns
+
+#### 1. JWT Authentication
+
+All protected endpoints require JWT authentication:
+
+```typescript
+// Middleware checks token
+const authMiddleware = async (request, reply) => {
+  const token = request.headers.authorization?.replace('Bearer ', '');
+  if (!token) {
+    return reply.code(401).send({ error: { code: 'UNAUTHORIZED', message: 'No token' } });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    request.user = decoded;
+  } catch (error) {
+    return reply.code(401).send({ error: { code: 'UNAUTHORIZED', message: 'Invalid token' } });
+  }
+};
+```
+
+#### 2. Rate Limiting
+
+Different rate limits for different endpoint types:
+
+```typescript
+// Authentication endpoints: 10 requests/minute
+// Read operations: 100 requests/15 minutes
+// Write operations: 30 requests/minute
+// Message posting: 30 messages/hour
+```
+
+#### 3. Pagination
+
+List endpoints support pagination:
+
+```typescript
+GET /message-bases/:id/messages?page=1&limit=50
+
+Response:
+{
+  "messages": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 150,
+    "pages": 3,
+    "hasNext": true,
+    "hasPrev": false
+  }
+}
+```
+
+#### 4. Error Handling
+
+Consistent error responses across all endpoints:
+
+```typescript
+try {
+  // Operation
+} catch (error) {
+  return reply.code(500).send({
+    error: {
+      code: 'INTERNAL_ERROR',
+      message: 'Operation failed',
+      details: {}
+    }
+  });
+}
+```
+
+### Notification Service Architecture
+
+**Location**: `server/src/notifications/`
+
+**Components**:
+- `NotificationService` - Core notification broadcasting
+- `types.ts` - Event type definitions
+- `constants.ts` - Event type constants
+
+**Key Features**:
+- Type-safe event definitions
+- Subscription filtering
+- Graceful error handling
+- No blocking on delivery failures
+
+**Usage Example**:
+```typescript
+// Broadcast new message notification
+notificationService.broadcast({
+  type: NotificationEventType.MESSAGE_NEW,
+  timestamp: new Date(),
+  data: {
+    messageId: message.id,
+    messageBaseId: message.messageBaseId,
+    messageBaseName: messageBase.name,
+    subject: message.subject,
+    authorId: message.authorId,
+    authorHandle: message.authorHandle
+  }
+});
+```
+
+### Hybrid Client Pattern
+
+The terminal client uses a hybrid approach:
+
+1. **REST API for Actions**:
+   - User login/registration
+   - Posting messages
+   - Entering/exiting doors
+   - Sending door input
+
+2. **WebSocket for Notifications**:
+   - New message alerts
+   - User activity updates
+   - System announcements
+
+3. **Graceful Fallback**:
+   - If REST API unavailable, fall back to WebSocket commands
+   - Maintain same user experience
+   - Log fallback events
+
+**Implementation**:
+```typescript
+async function postMessage(baseId, subject, body) {
+  try {
+    // Try REST API first
+    const response = await fetch(`${API_URL}/message-bases/${baseId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ subject, body })
+    });
+    return await response.json();
+  } catch (error) {
+    // Fall back to WebSocket command
+    console.log('REST API unavailable, using WebSocket fallback');
+    return sendWebSocketCommand('POST_MESSAGE', { baseId, subject, body });
+  }
+}
+```
+
+### Benefits of Hybrid Architecture
+
+1. **Testability**: REST API is easily testable with standard HTTP tools
+2. **Real-time Updates**: WebSocket provides instant notifications
+3. **Mobile-Friendly**: REST API perfect for mobile app development
+4. **Scalability**: Stateless REST API scales horizontally
+5. **Developer Experience**: Standard HTTP patterns, OpenAPI documentation
+6. **Flexibility**: Clients can choose REST-only, WebSocket-only, or hybrid
+7. **Backwards Compatible**: Existing WebSocket clients continue to work
+
+### Migration Path
+
+**Phase 1**: Implement REST API alongside WebSocket (✅ Complete)
+**Phase 2**: Add WebSocket notifications (✅ Complete)
+**Phase 3**: Update terminal client to hybrid mode (✅ Complete)
+**Phase 4**: Build mobile apps using REST API (Future)
+**Phase 5**: Deprecate WebSocket commands (Optional, Future)
+
+### Performance Considerations
+
+1. **Connection Pooling**: Reuse HTTP connections with keep-alive
+2. **Caching**: Cache message bases and user lists
+3. **Pagination**: Limit result set sizes
+4. **Rate Limiting**: Prevent abuse and ensure fair usage
+5. **WebSocket Efficiency**: Only send notifications to subscribed clients
+
+### Security Enhancements
+
+1. **JWT Tokens**: Secure, stateless authentication
+2. **Token Expiration**: 24-hour token lifetime
+3. **Rate Limiting**: Prevent brute force and abuse
+4. **Input Validation**: Validate all API inputs
+5. **CORS Configuration**: Restrict origins in production
+
+### Documentation
+
+- **OpenAPI Specification**: `server/openapi.yaml` - Complete API reference with examples
+- **API README**: `server/API_README.md` - Comprehensive API usage guide
+- **curl Examples**: `server/API_CURL_EXAMPLES.md` - Command-line examples for all endpoints
+- **Code Examples**: `server/API_CODE_EXAMPLES.md` - JavaScript, Python, and React integration examples
+- **Postman Collection**: `server/BaudAgain-API.postman_collection.json` - Import-ready collection for testing
+- **Mobile Guide**: `server/MOBILE_APP_GUIDE.md` - React Native mobile app development guide
+- **Performance Testing**: `server/PERFORMANCE_TESTING.md` - Benchmarking guide and results
+
 ---
 
-**Last Updated**: 2025-11-28
-**Version**: 0.3.0 (Milestone 3 - AI Integration + Control Panel)
+**Last Updated**: 2025-12-03
+**Version**: 0.6.0 (Milestone 6 - Hybrid Architecture Complete)

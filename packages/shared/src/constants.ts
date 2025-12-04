@@ -16,3 +16,8 @@ export const HANDLE_MIN_LENGTH = 3;
 export const HANDLE_MAX_LENGTH = 20;
 
 export const BCRYPT_COST_FACTOR = 10;
+
+// Terminal display constants
+export const TERMINAL_WIDTH = 80;  // Standard terminal width
+export const FRAME_WIDTH = 80;     // Maximum frame width
+export const CONTENT_WIDTH = 76;   // Content width (frame - borders - padding)

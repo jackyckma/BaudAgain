@@ -1,14 +1,16 @@
 import { Session, SessionState } from '@baudagain/shared';
-import { v4 as uuidv4 } from 'uuid';
 import { FastifyBaseLogger } from 'fastify';
-import { SESSION_TIMEOUT_MS } from '@baudagain/shared';
+import { SessionService } from '../services/SessionService.js';
 
 export class SessionManager {
   private sessions: Map<string, Session> = new Map();
   private connectionToSession: Map<string, string> = new Map();
   private cleanupInterval: NodeJS.Timeout;
+  private sessionService: SessionService;
 
   constructor(private logger: FastifyBaseLogger) {
+    this.sessionService = new SessionService();
+    
     // Run cleanup every minute
     this.cleanupInterval = setInterval(() => {
       this.cleanupInactiveSessions();
@@ -19,14 +21,7 @@ export class SessionManager {
    * Create a new session for a connection
    */
   createSession(connectionId: string): Session {
-    const session: Session = {
-      id: uuidv4(),
-      connectionId,
-      state: SessionState.CONNECTED,
-      currentMenu: 'welcome',
-      lastActivity: new Date(),
-      data: {},
-    };
+    const session = this.sessionService.createSession(connectionId);
 
     this.sessions.set(session.id, session);
     this.connectionToSession.set(connectionId, session.id);
@@ -61,8 +56,8 @@ export class SessionManager {
       return;
     }
 
-    Object.assign(session, updates, { lastActivity: new Date() });
-    this.sessions.set(sessionId, session);
+    const updatedSession = this.sessionService.updateSession(session, updates);
+    this.sessions.set(sessionId, updatedSession);
   }
 
   /**
@@ -71,7 +66,8 @@ export class SessionManager {
   touchSession(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (session) {
-      session.lastActivity = new Date();
+      const updatedSession = this.sessionService.touchSession(session);
+      this.sessions.set(sessionId, updatedSession);
     }
   }
 
@@ -115,15 +111,8 @@ export class SessionManager {
    * Clean up inactive sessions (older than SESSION_TIMEOUT_MS)
    */
   cleanupInactiveSessions(): void {
-    const now = Date.now();
-    const sessionsToRemove: string[] = [];
-
-    for (const [sessionId, session] of this.sessions.entries()) {
-      const inactiveTime = now - session.lastActivity.getTime();
-      if (inactiveTime > SESSION_TIMEOUT_MS) {
-        sessionsToRemove.push(sessionId);
-      }
-    }
+    const allSessions = Array.from(this.sessions.values());
+    const sessionsToRemove = this.sessionService.cleanupSession(allSessions);
 
     if (sessionsToRemove.length > 0) {
       this.logger.info(
@@ -135,6 +124,22 @@ export class SessionManager {
         this.removeSession(sessionId);
       }
     }
+  }
+
+  /**
+   * Get all sessions in a specific door
+   */
+  getSessionsInDoor(doorId: string): Session[] {
+    return Array.from(this.sessions.values()).filter(
+      session => session.state === SessionState.IN_DOOR && session.data.door?.doorId === doorId
+    );
+  }
+
+  /**
+   * Get session count for a specific door
+   */
+  getDoorSessionCount(doorId: string): number {
+    return this.getSessionsInDoor(doorId).length;
   }
 
   /**

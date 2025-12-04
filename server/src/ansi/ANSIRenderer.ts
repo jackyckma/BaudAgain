@@ -1,14 +1,17 @@
 import { readFileSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
+import { ANSIRenderingService, RenderContext, RENDER_CONTEXTS } from './ANSIRenderingService.js';
 
 export class ANSIRenderer {
   private templates: Map<string, string> = new Map();
   private templateDir: string;
+  private renderingService: ANSIRenderingService;
 
   constructor(templateDir: string = 'data/ansi') {
     // Resolve to absolute path from workspace root (one level up from server dir)
     const workspaceRoot = resolve(process.cwd(), '..');
     this.templateDir = resolve(workspaceRoot, templateDir);
+    this.renderingService = new ANSIRenderingService();
   }
 
   /**
@@ -49,55 +52,86 @@ export class ANSIRenderer {
   /**
    * Render a template with variables
    */
-  render(templateName: string, variables: Record<string, string> = {}): string {
+  render(templateName: string, variables: Record<string, string> = {}, context: RenderContext = RENDER_CONTEXTS.TERMINAL_80): string {
+    // Use frame builder for welcome and goodbye screens
+    if (templateName === 'welcome.ans') {
+      return this.renderWelcomeScreen(variables, context);
+    }
+    
+    if (templateName === 'goodbye.ans') {
+      return this.renderGoodbyeScreen(context);
+    }
+    
     const template = this.getTemplate(templateName);
     const substituted = this.substituteVariables(template, variables);
     
-    // Add color codes for welcome screen
-    if (templateName === 'welcome.ans') {
-      return this.colorizeWelcomeScreen(substituted);
-    }
-    
     return substituted;
   }
-
+  
   /**
-   * Add ANSI color codes to welcome screen
+   * Render welcome screen using frame builder
    */
-  private colorizeWelcomeScreen(content: string): string {
-    const lines = content.split('\n');
-    const colored: string[] = [];
+  private renderWelcomeScreen(variables: Record<string, string>, context: RenderContext = RENDER_CONTEXTS.TERMINAL_80): string {
+    const node = variables.node || '1';
+    const maxNodes = variables.max_nodes || '4';
+    const callerCount = variables.caller_count || '0';
+    const statusText = `Node ${node}/${maxNodes}  │  ${callerCount} callers today`;
     
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      
-      // Box borders in cyan
-      if (line.includes('╔') || line.includes('╚') || line.includes('╠')) {
-        colored.push(`\x1b[36m${line}\x1b[0m`);
-      }
-      // Title lines (THE HAUNTED) in yellow/bright yellow
-      else if (i >= 2 && i <= 8) {
-        colored.push(`\x1b[33m${line}\x1b[0m`);
-      }
-      // Subtitle (TERMINAL) in magenta/bright magenta
-      else if (i >= 10 && i <= 15) {
-        colored.push(`\x1b[35m${line}\x1b[0m`);
-      }
-      // Tagline in gray
-      else if (line.includes('spirits')) {
-        colored.push(`\x1b[90m${line}\x1b[0m`);
-      }
-      // Status line with mixed colors
-      else if (line.includes('Node') && line.includes('callers')) {
-        colored.push(`\x1b[36m${line}\x1b[0m`);
-      }
-      // Default
-      else {
-        colored.push(line);
-      }
-    }
+    // Build a single frame with all content
+    const lines = [
+      { text: '', align: 'center' as const },
+      { text: '████████╗██╗  ██╗███████╗    ██╗  ██╗ █████╗ ██╗   ██╗███╗   ██╗████████╗', align: 'center' as const, color: '\x1b[33m' },
+      { text: '╚══██╔══╝██║  ██║██╔════╝    ██║  ██║██╔══██╗██║   ██║████╗  ██║╚══██╔══╝', align: 'center' as const, color: '\x1b[33m' },
+      { text: '   ██║   ███████║█████╗      ███████║███████║██║   ██║██╔██╗ ██║   ██║   ', align: 'center' as const, color: '\x1b[33m' },
+      { text: '   ██║   ██╔══██║██╔══╝      ██╔══██║██╔══██║██║   ██║██║╚██╗██║   ██║   ', align: 'center' as const, color: '\x1b[33m' },
+      { text: '   ██║   ██║  ██║███████╗    ██║  ██║██║  ██║╚██████╔╝██║ ╚████║   ██║   ', align: 'center' as const, color: '\x1b[33m' },
+      { text: '   ╚═╝   ╚═╝  ╚═╝╚══════╝    ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ', align: 'center' as const, color: '\x1b[33m' },
+      { text: '', align: 'center' as const },
+      { text: '███████╗██████╗     ████████╗███████╗██████╗ ███╗   ███╗', align: 'center' as const, color: '\x1b[35m' },
+      { text: '██╔════╝██╔══██╗    ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║', align: 'center' as const, color: '\x1b[35m' },
+      { text: '█████╗  ██║  ██║       ██║   █████╗  ██████╔╝██╔████╔██║', align: 'center' as const, color: '\x1b[35m' },
+      { text: '██╔══╝  ██║  ██║       ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║', align: 'center' as const, color: '\x1b[35m' },
+      { text: '███████╗██████╔╝       ██║   ███████╗██║  ██║██║ ╚═╝ ██║', align: 'center' as const, color: '\x1b[35m' },
+      { text: '╚══════╝╚═════╝        ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝', align: 'center' as const, color: '\x1b[35m' },
+      { text: '', align: 'center' as const },
+      { text: '', align: 'center' as const },
+      { text: '"Where the spirits of the old \'net still whisper..."', align: 'center' as const, color: '\x1b[90m' },
+      { text: '', align: 'center' as const },
+      { text: statusText, align: 'center' as const, color: '\x1b[36m' },
+      { text: '', align: 'center' as const },
+    ];
     
-    return colored.join('\r\n');
+    // Use ANSIRenderingService to render the frame
+    return this.renderingService.renderFrame(
+      lines,
+      { width: 80, style: 'double' },
+      context
+    );
+  }
+  
+  /**
+   * Render goodbye screen using frame builder
+   */
+  private renderGoodbyeScreen(context: RenderContext = RENDER_CONTEXTS.TERMINAL_80): string {
+    const content = [
+      { text: '' },
+      { text: 'The system is shutting down for maintenance...' },
+      { text: '' },
+      { text: 'Thank you for calling BaudAgain BBS!' },
+      { text: 'We hope to see you again soon.' },
+      { text: '' },
+      { text: 'Stay retro. Stay connected.' },
+      { text: '' },
+    ];
+    
+    // Use ANSIRenderingService to render the frame with title
+    return this.renderingService.renderFrameWithTitle(
+      'BAUDAGAIN BBS - GOODBYE',
+      content,
+      { width: 61, style: 'double' },
+      context,
+      'cyan'
+    );
   }
 
   /**

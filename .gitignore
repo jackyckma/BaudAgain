@@ -25,6 +25,13 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+# Temporary files
+*.tmp
+*.temp
+*.backup
+*.bak
+*~
+
 # OS
 .DS_Store
 .DS_Store?

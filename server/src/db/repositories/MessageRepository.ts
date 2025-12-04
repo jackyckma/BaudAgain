@@ -64,7 +64,7 @@ export class MessageRepository {
     const row = this.db.get<any>(
       `SELECT m.*, u.handle as author_handle
        FROM messages m
-       JOIN users u ON m.user_id = u.id
+       LEFT JOIN users u ON m.user_id = u.id
        WHERE m.id = ? AND m.is_deleted = 0`,
       [id]
     );
@@ -81,7 +81,7 @@ export class MessageRepository {
     const rows = this.db.all<any>(
       `SELECT m.*, u.handle as author_handle
        FROM messages m
-       JOIN users u ON m.user_id = u.id
+       LEFT JOIN users u ON m.user_id = u.id
        WHERE m.base_id = ? AND m.is_deleted = 0 AND m.parent_id IS NULL
        ORDER BY m.created_at DESC
        LIMIT ? OFFSET ?`,
@@ -98,7 +98,7 @@ export class MessageRepository {
     const rows = this.db.all<any>(
       `SELECT m.*, u.handle as author_handle
        FROM messages m
-       JOIN users u ON m.user_id = u.id
+       LEFT JOIN users u ON m.user_id = u.id
        WHERE m.parent_id = ? AND m.is_deleted = 0
        ORDER BY m.created_at ASC`,
       [parentId]
@@ -121,13 +121,31 @@ export class MessageRepository {
   }
   
   /**
+   * Get messages in a message base since a specific date
+   */
+  findByBaseIdSince(baseId: string, since: Date): Message[] {
+    const sinceIso = since.toISOString();
+    
+    const rows = this.db.all<any>(
+      `SELECT m.*, u.handle as author_handle
+       FROM messages m
+       LEFT JOIN users u ON m.user_id = u.id
+       WHERE m.base_id = ? AND m.is_deleted = 0 AND m.created_at > ?
+       ORDER BY m.created_at DESC`,
+      [baseId, sinceIso]
+    );
+    
+    return rows.map(row => this.mapToMessage(row));
+  }
+  
+  /**
    * Get recent messages across all bases
    */
   getRecentMessages(limit: number = 10): Message[] {
     const rows = this.db.all<any>(
       `SELECT m.*, u.handle as author_handle
        FROM messages m
-       JOIN users u ON m.user_id = u.id
+       LEFT JOIN users u ON m.user_id = u.id
        WHERE m.is_deleted = 0
        ORDER BY m.created_at DESC
        LIMIT ?`,

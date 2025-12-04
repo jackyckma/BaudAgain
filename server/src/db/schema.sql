@@ -76,3 +76,18 @@ CREATE TABLE IF NOT EXISTS activity_log (
 
 CREATE INDEX IF NOT EXISTS idx_activity_user ON activity_log(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_activity_time ON activity_log(created_at DESC);
+
+-- Art gallery
+CREATE TABLE IF NOT EXISTS art_gallery (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    art_content TEXT NOT NULL,
+    style TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_art_gallery_user ON art_gallery(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_art_gallery_created ON art_gallery(created_at DESC);

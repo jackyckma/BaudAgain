@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANSI Frame Alignment Test - Using ANSIRenderingService</title>
+    <style>
+        body {
+            background: #000;
+            color: #0f0;
+            font-family: 'Cascadia Code', 'JetBrains Mono', 'Noto Sans Mono', 'Consolas', 'Courier New', monospace;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #0ff;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .frame-section {
+            margin-bottom: 40px;
+            border: 2px solid #333;
+            padding: 20px;
+            background: #111;
+        }
+        
+        .frame-title {
+            color: #ff0;
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .frame-output {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #444;
+            overflow-x: auto;
+            white-space: pre;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+        
+        .validation-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .validation-result.valid {
+            background: #1a4d1a;
+            color: #0f0;
+        }
+        
+        .validation-result.invalid {
+            background: #4d1a1a;
+            color: #f00;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .stat {
+            background: #222;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+        }
+        
+        .stat-value {
+            color: #0ff;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .info {
+            background: #1a1a4d;
+            color: #8be9fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #0ff;
+        }
+        
+        .info strong {
+            color: #ff0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ ANSI Frame Alignment Test - Task 4.3</h1>
+        
+        <div class="info">
+            <strong>✨ Using ANSIRenderingService</strong><br>
+            This page now uses the ANSIRenderingService with WEB_80 context to render frames.
+            ANSI codes are converted to HTML using ANSIColorizer.toHTML().
+        </div>
+        
+        <div class="frame-section">
+            <div class="frame-title">Welcome Screen (80 columns)</div>
+            <div class="frame-output">╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║  <span style="color: #f1fa8c">████████╗██╗  ██╗███████╗    ██╗  ██╗ █████╗ ██╗   ██╗███╗   ██╗████████╗ </span>  ║
+║  <span style="color: #f1fa8c">╚══██╔══╝██║  ██║██╔════╝    ██║  ██║██╔══██╗██║   ██║████╗  ██║╚══██╔══╝ </span>  ║
+║  <span style="color: #f1fa8c">   ██║   ███████║█████╗      ███████║███████║██║   ██║██╔██╗ ██║   ██║    </span>  ║
+║  <span style="color: #f1fa8c">   ██║   ██╔══██║██╔══╝      ██╔══██║██╔══██║██║   ██║██║╚██╗██║   ██║    </span>  ║
+║  <span style="color: #f1fa8c">   ██║   ██║  ██║███████╗    ██║  ██║██║  ██║╚██████╔╝██║ ╚████║   ██║    </span>  ║
+║  <span style="color: #f1fa8c">   ╚═╝   ╚═╝  ╚═╝╚══════╝    ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝    </span>  ║
+║                                                                              ║
+║  <span style="color: #ff79c6">         ███████╗██████╗     ████████╗███████╗██████╗ ███╗   ███╗         </span>  ║
+║  <span style="color: #ff79c6">         ██╔════╝██╔══██╗    ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║         </span>  ║
+║  <span style="color: #ff79c6">         █████╗  ██║  ██║       ██║   █████╗  ██████╔╝██╔████╔██║         </span>  ║
+║  <span style="color: #ff79c6">         ██╔══╝  ██║  ██║       ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║         </span>  ║
+║  <span style="color: #ff79c6">         ███████╗██████╔╝       ██║   ███████╗██║  ██║██║ ╚═╝ ██║         </span>  ║
+║  <span style="color: #ff79c6">         ╚══════╝╚═════╝        ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝         </span>  ║
+║                                                                              ║
+║                                                                              ║
+║  <span style="color: #6272a4">           "Where the spirits of the old 'net still whisper..."           </span>  ║
+║                                                                              ║
+║  <span style="color: #8be9fd">                       Node 1/4  │  0 callers today                       </span>  ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝</div>
+            <div class="validation-result valid">
+                ✓ Frame is perfectly aligned!
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-label">Width</div>
+                    <div class="stat-value">80</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Height</div>
+                    <div class="stat-value">22</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value" style="color: #0f0">
+                        ✓
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="frame-section">
+            <div class="frame-title">Goodbye Screen (61 columns)</div>
+            <div class="frame-output">╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║  <span style="color: #8be9fd">                BAUDAGAIN BBS - GOODBYE                </span>  ║
+║                                                           ║
+╠═══════════════════════════════════════════════════════════╣
+║                                                           ║
+║                                                           ║
+║  The system is shutting down for maintenance...           ║
+║                                                           ║
+║  Thank you for calling BaudAgain BBS!                     ║
+║  We hope to see you again soon.                           ║
+║                                                           ║
+║  Stay retro. Stay connected.                              ║
+║                                                           ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝</div>
+            <div class="validation-result valid">
+                ✓ Frame is perfectly aligned!
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-label">Width</div>
+                    <div class="stat-value">61</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Height</div>
+                    <div class="stat-value">16</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value" style="color: #0f0">
+                        ✓
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="frame-section">
+            <div class="frame-title">Technical Details</div>
+            <div style="color: #8be9fd; padding: 10px;">
+                <p><strong style="color: #ff0;">Rendering Method:</strong> ANSIRenderingService with WEB_80 context</p>
+                <p><strong style="color: #ff0;">Conversion:</strong> ANSIColorizer.toHTML()</p>
+                <p><strong style="color: #ff0;">Line Endings:</strong> LF (\n)</p>
+                <p><strong style="color: #ff0;">ANSI Codes:</strong> Converted to HTML &lt;span&gt; tags with inline styles</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

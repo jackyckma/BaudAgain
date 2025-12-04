@@ -241,12 +241,14 @@ export class AuthHandler implements CommandHandler {
         data: {},
       });
 
-      // Generate AI welcome message using helper
+      // Generate AI welcome message using helper with loading indicator
       const welcomeOutput = await AIResponseHelper.renderAIResponse(
         this.deps.aiSysOp,
         () => this.deps.aiSysOp!.generateWelcome(user.handle),
         this.deps.renderer,
-        `\r\nWelcome to BaudAgain BBS, ${user.handle}!\r\nYou are now logged in.\r\n\r\n`
+        `\r\nWelcome to BaudAgain BBS, ${user.handle}!\r\nYou are now logged in.\r\n\r\n`,
+        true,
+        'Generating personalized welcome message...'
       );
 
       // Show main menu immediately after registration
@@ -306,7 +308,7 @@ export class AuthHandler implements CommandHandler {
         data: {},
       });
 
-      // Generate AI greeting using helper
+      // Generate AI greeting using helper with loading indicator
       let greetingText = `\r\nWelcome back, ${user.handle}!\r\n`;
       if (user.lastLogin) {
         greetingText += `Last login: ${user.lastLogin.toLocaleString()}\r\n\r\n`;
@@ -318,10 +320,44 @@ export class AuthHandler implements CommandHandler {
         this.deps.aiSysOp,
         () => this.deps.aiSysOp!.generateGreeting(user.handle, user.lastLogin),
         this.deps.renderer,
-        greetingText
+        greetingText,
+        true,
+        'Generating personalized greeting...'
       );
 
-      // Show main menu immediately after login
+      // Check if user should receive a daily digest
+      let digestAvailable = false;
+      if (
+        this.deps.dailyDigestService &&
+        this.deps.messageRepository &&
+        this.deps.messageBaseRepository &&
+        user.lastLogin
+      ) {
+        digestAvailable = this.deps.dailyDigestService.shouldGenerateDigest(user.lastLogin);
+      }
+
+      // If digest is available, offer it to the user
+      let digestOutput = '';
+      if (digestAvailable) {
+        // Store digest state in session for later retrieval
+        this.deps.sessionManager.updateSession(session.id, {
+          data: {
+            ...session.data,
+            digestAvailable: true,
+          },
+        });
+
+        // Show notification about available digest
+        const message: MessageContent = {
+          type: ContentType.MESSAGE,
+          text: '\r\n📰 A daily digest is available with updates since your last visit.\r\n',
+          style: 'info',
+        };
+        digestOutput = this.deps.renderer.render(message);
+        digestOutput += 'Type "DIGEST" at any time to view it, or continue to the main menu.\r\n\r\n';
+      }
+
+      // Show main menu immediately after login (or after digest)
       const menuContent: MenuContent = {
         type: ContentType.MENU,
         title: 'Main Menu',
@@ -334,7 +370,7 @@ export class AuthHandler implements CommandHandler {
         ],
       };
 
-      return this.deps.renderer.render(echoOn) + greetingOutput + this.deps.renderer.render(menuContent) + '\r\nCommand: ';
+      return this.deps.renderer.render(echoOn) + greetingOutput + digestOutput + this.deps.renderer.render(menuContent) + '\r\nCommand: ';
     }
 
     return 'Login error.\r\n';

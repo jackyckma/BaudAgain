@@ -37,6 +37,10 @@ tags:
     description: Message operations
   - name: Doors
     description: Door game operations
+  - name: System
+    description: System administration and announcements
+  - name: Conversation Starters
+    description: AI-generated conversation starters and daily questions
 
 components:
   securitySchemes:
@@ -189,7 +193,21 @@ paths:
       tags:
         - Authentication
       summary: Register new user
-      description: Create a new user account
+      description: |
+        Create a new user account
+        
+        **curl Example:**
+        ```bash
+        curl -X POST "http://localhost:8080/api/v1/auth/register" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "handle": "testuser",
+            "password": "password123",
+            "realName": "Test User",
+            "location": "Cyberspace",
+            "bio": "Just testing the BBS API"
+          }'
+        ```
       operationId: register
       requestBody:
         required: true
@@ -244,7 +262,23 @@ paths:
       tags:
         - Authentication
       summary: Login
-      description: Authenticate with existing credentials
+      description: |
+        Authenticate with existing credentials
+        
+        **curl Example:**
+        ```bash
+        curl -X POST "http://localhost:8080/api/v1/auth/login" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "handle": "testuser",
+            "password": "password123"
+          }'
+        ```
+        
+        Save the returned token for authenticated requests:
+        ```bash
+        export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        ```
       operationId: login
       requestBody:
         required: true
@@ -319,7 +353,14 @@ paths:
       tags:
         - Authentication
       summary: Get current user
-      description: Get information about the authenticated user
+      description: |
+        Get information about the authenticated user
+        
+        **curl Example:**
+        ```bash
+        curl -X GET "http://localhost:8080/api/v1/auth/me" \
+          -H "Authorization: Bearer $TOKEN"
+        ```
       operationId: getCurrentUser
       security:
         - bearerAuth: []
@@ -619,7 +660,14 @@ paths:
       tags:
         - Messages
       summary: List messages
-      description: Get messages in a message base
+      description: |
+        Get messages in a message base
+        
+        **curl Example:**
+        ```bash
+        curl -X GET "http://localhost:8080/api/v1/message-bases/$MESSAGE_BASE_ID/messages?page=1&limit=50" \
+          -H "Authorization: Bearer $TOKEN"
+        ```
       operationId: listMessages
       security:
         - bearerAuth: []
@@ -659,7 +707,19 @@ paths:
       tags:
         - Messages
       summary: Post message
-      description: Post new message to message base
+      description: |
+        Post new message to message base
+        
+        **curl Example:**
+        ```bash
+        curl -X POST "http://localhost:8080/api/v1/message-bases/$MESSAGE_BASE_ID/messages" \
+          -H "Authorization: Bearer $TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "subject": "Test Message",
+            "body": "This is a test message posted via the API."
+          }'
+        ```
       operationId: postMessage
       security:
         - bearerAuth: []
@@ -727,6 +787,53 @@ paths:
         '404':
           description: Message not found
 
+  /messages/{id}/replies:
+    post:
+      tags:
+        - Messages
+      summary: Post reply
+      description: Post reply to a message
+      operationId: postReply
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Parent message ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subject
+                - body
+              properties:
+                subject:
+                  type: string
+                  maxLength: 200
+                body:
+                  type: string
+                  maxLength: 10000
+      responses:
+        '201':
+          description: Reply posted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '403':
+          description: No write access
+        '404':
+          description: Parent message not found
+        '429':
+          description: Rate limit exceeded
+
   /doors:
     get:
       tags:
@@ -754,7 +861,14 @@ paths:
       tags:
         - Doors
       summary: Enter door
-      description: Enter a door game
+      description: |
+        Enter a door game and create a session
+        
+        **curl Example:**
+        ```bash
+        curl -X POST "http://localhost:8080/api/v1/doors/the_oracle/enter" \
+          -H "Authorization: Bearer $TOKEN"
+        ```
       operationId: enterDoor
       security:
         - bearerAuth: []
@@ -764,9 +878,10 @@ paths:
           required: true
           schema:
             type: string
+          description: Door game ID
       responses:
         '200':
-          description: Door entered
+          description: Door entered successfully
           content:
             application/json:
               schema:
@@ -775,19 +890,49 @@ paths:
                   sessionId:
                     type: string
                     format: uuid
+                    description: Session ID for subsequent requests
                   doorId:
                     type: string
+                    description: Door game ID
+                  doorName:
+                    type: string
+                    description: Door game name
                   output:
                     type: string
-                  state:
-                    type: object
+                    description: Initial door output (ANSI formatted)
+                  resumed:
+                    type: boolean
+                    description: Whether this is a resumed session from the database
+        '404':
+          description: Door not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to enter door
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /doors/{id}/input:
     post:
       tags:
         - Doors
       summary: Send door input
-      description: Send input to door game
+      description: |
+        Send user input to an active door game session
+        
+        **curl Example:**
+        ```bash
+        curl -X POST "http://localhost:8080/api/v1/doors/the_oracle/input" \
+          -H "Authorization: Bearer $TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "input": "What is the meaning of life?"
+          }'
+        ```
       operationId: sendDoorInput
       security:
         - bearerAuth: []
@@ -797,6 +942,7 @@ paths:
           required: true
           schema:
             type: string
+          description: Door game ID
       requestBody:
         required: true
         content:
@@ -804,17 +950,18 @@ paths:
             schema:
               type: object
               required:
-                - sessionId
                 - input
               properties:
                 sessionId:
                   type: string
                   format: uuid
+                  description: Session ID (optional if using same user session)
                 input:
                   type: string
+                  description: User input to send to the door
       responses:
         '200':
-          description: Input processed
+          description: Input processed successfully
           content:
             application/json:
               schema:
@@ -822,19 +969,45 @@ paths:
                 properties:
                   sessionId:
                     type: string
+                    format: uuid
+                    description: Session ID
                   output:
                     type: string
-                  state:
-                    type: object
-                  isComplete:
+                    description: Door response output (ANSI formatted)
+                  exited:
                     type: boolean
+                    description: Whether the user has exited the door
+        '400':
+          description: Invalid input or state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Session does not belong to current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Door or session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to process input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /doors/{id}/exit:
     post:
       tags:
         - Doors
       summary: Exit door
-      description: Exit door game
+      description: Exit an active door game session
       operationId: exitDoor
       security:
         - bearerAuth: []
@@ -844,6 +1017,316 @@ paths:
           required: true
           schema:
             type: string
+          description: Door game ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                  description: Session ID (optional if using same user session)
+      responses:
+        '200':
+          description: Door exited successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  output:
+                    type: string
+                    description: Exit message (ANSI formatted)
+                  exited:
+                    type: boolean
+                    description: Always true
+        '403':
+          description: Session does not belong to current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Door or session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to exit door
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /doors/{id}/session:
+    get:
+      tags:
+        - Doors
+      summary: Get door session info
+      description: Get information about the current user's session in a specific door
+      operationId: getDoorSession
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Door game ID
+      responses:
+        '200':
+          description: Door session information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inDoor:
+                    type: boolean
+                    description: Whether user is currently in this door
+                  hasSavedSession:
+                    type: boolean
+                    description: Whether there is a saved session in the database
+                  sessionId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                    description: Session ID if in door
+                  doorId:
+                    type: string
+                    description: Door game ID
+                  doorName:
+                    type: string
+                    description: Door game name
+                  lastActivity:
+                    type: string
+                    format: date-time
+                    description: Last activity timestamp
+                  gameState:
+                    type: object
+                    description: Current game state (only if inDoor is true)
+                  history:
+                    type: array
+                    description: Conversation history (only if inDoor is true)
+                    items:
+                      type: object
+                  savedState:
+                    type: object
+                    description: Saved game state from database (only if hasSavedSession is true)
+                  savedHistory:
+                    type: array
+                    description: Saved conversation history from database (only if hasSavedSession is true)
+                    items:
+                      type: object
+        '404':
+          description: Door not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /doors/{id}/resume:
+    post:
+      tags:
+        - Doors
+      summary: Resume saved door session
+      description: Resume a previously saved door game session from the database
+      operationId: resumeDoorSession
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Door game ID
+      responses:
+        '200':
+          description: Door session resumed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId:
+                    type: string
+                    format: uuid
+                    description: Session ID for subsequent requests
+                  doorId:
+                    type: string
+                    description: Door game ID
+                  doorName:
+                    type: string
+                    description: Door game name
+                  output:
+                    type: string
+                    description: Door output with resumed state (ANSI formatted)
+                  resumed:
+                    type: boolean
+                    description: Always true for this endpoint
+        '404':
+          description: Door not found or no saved session exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to resume door session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /doors/my-sessions:
+    get:
+      tags:
+        - Doors
+      summary: Get user's saved door sessions
+      description: Get all saved door sessions for the current user
+      operationId: getMySavedDoorSessions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of saved door sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        doorId:
+                          type: string
+                          description: Door game ID
+                        doorName:
+                          type: string
+                          description: Door game name
+                        lastActivity:
+                          type: string
+                          format: date-time
+                          description: Last activity timestamp
+                        createdAt:
+                          type: string
+                          format: date-time
+                          description: Session creation timestamp
+                        canResume:
+                          type: boolean
+                          description: Whether this session can be resumed
+                  totalCount:
+                    type: integer
+                    description: Total number of saved sessions
+
+  /doors/sessions:
+    get:
+      tags:
+        - Doors
+      summary: Get all active door sessions
+      description: Get information about all active door sessions (admin only)
+      operationId: getAllDoorSessions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of active door sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sessionId:
+                          type: string
+                          format: uuid
+                        userId:
+                          type: string
+                          format: uuid
+                        handle:
+                          type: string
+                        doorId:
+                          type: string
+                        doorName:
+                          type: string
+                        lastActivity:
+                          type: string
+                          format: date-time
+                        inactiveTime:
+                          type: integer
+                          description: Milliseconds since last activity
+                  totalCount:
+                    type: integer
+                    description: Total number of active door sessions
+        '403':
+          description: Insufficient permissions (admin only)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /doors/{id}/stats:
+    get:
+      tags:
+        - Doors
+      summary: Get door statistics
+      description: Get statistics about a specific door game
+      operationId: getDoorStats
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Door game ID
+      responses:
+        '200':
+          description: Door statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  doorId:
+                    type: string
+                  doorName:
+                    type: string
+                  activeSessions:
+                    type: integer
+                    description: Number of users currently in this door
+                  timeout:
+                    type: integer
+                    description: Door timeout in milliseconds
+        '404':
+          description: Door not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /system/announcement:
+    post:
+      tags:
+        - System
+      summary: Send system-wide announcement
+      description: |
+        Broadcast a system announcement to all authenticated users via WebSocket notifications.
+        Only administrators (access level >= 255) can send announcements.
+      operationId: sendSystemAnnouncement
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -851,11 +1334,730 @@ paths:
             schema:
               type: object
               required:
-                - sessionId
+                - message
               properties:
-                sessionId:
+                message:
+                  type: string
+                  description: Announcement message text
+                  minLength: 1
+                  maxLength: 500
+                  example: "Server maintenance scheduled for tonight at 10 PM"
+                priority:
+                  type: string
+                  enum: [low, normal, high, critical]
+                  default: normal
+                  description: Priority level of the announcement
+                expiresAt:
+                  type: string
+                  format: date-time
+                  description: Optional ISO 8601 timestamp when the announcement expires
+                  example: "2025-12-02T10:00:00Z"
+      responses:
+        '200':
+          description: Announcement sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Announcement sent successfully"
+                  announcement:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      priority:
+                        type: string
+                      expiresAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      timestamp:
+                        type: string
+                        format: date-time
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Only administrators can send announcements
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '501':
+          description: Notification service not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters/generate:
+    post:
+      tags:
+        - Conversation Starters
+      summary: Generate a new conversation starter question
+      description: |
+        Manually trigger the generation of a new "Question of the Day" and post it to the configured message base.
+        This endpoint analyzes recent activity and generates a contextually relevant discussion question.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Question generated and posted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  question:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        description: Unique question identifier
+                        example: "q_1733356800000_abc123"
+                      messageBaseId:
+                        type: string
+                        format: uuid
+                        description: ID of the message base where question was posted
+                      messageBaseName:
+                        type: string
+                        description: Name of the message base
+                        example: "General Discussion"
+                      question:
+                        type: string
+                        description: The generated question text
+                        example: "What's your favorite memory from the early days of the internet?"
+                      style:
+                        type: string
+                        enum: [open-ended, opinion, creative, technical, fun]
+                        description: Style of the question
+                        example: "open-ended"
+                      generatedAt:
+                        type: string
+                        format: date-time
+                        description: When the question was generated
+                      postedAt:
+                        type: string
+                        format: date-time
+                        description: When the question was posted to the message base
+                      messageId:
+                        type: string
+                        format: uuid
+                        description: ID of the message containing the question
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '501':
+          description: Daily question service not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters:
+    get:
+      tags:
+        - Conversation Starters
+      summary: Get history of generated questions
+      description: |
+        Retrieve the history of previously generated conversation starter questions,
+        including engagement metrics for each question.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of questions to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+      responses:
+        '200':
+          description: Question history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  questions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Unique question identifier
+                        messageBaseId:
+                          type: string
+                          format: uuid
+                        messageBaseName:
+                          type: string
+                        question:
+                          type: string
+                        style:
+                          type: string
+                          enum: [open-ended, opinion, creative, technical, fun]
+                        generatedAt:
+                          type: string
+                          format: date-time
+                        postedAt:
+                          type: string
+                          format: date-time
+                        messageId:
+                          type: string
+                          format: uuid
+                        engagementMetrics:
+                          type: object
+                          properties:
+                            views:
+                              type: integer
+                              description: Number of views (currently always 0)
+                            replies:
+                              type: integer
+                              description: Number of replies to the question
+                            uniqueRepliers:
+                              type: integer
+                              description: Number of unique users who replied
+                  total:
+                    type: integer
+                    description: Total number of questions returned
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '501':
+          description: Daily question service not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters/{id}:
+    get:
+      tags:
+        - Conversation Starters
+      summary: Get a specific question with metrics
+      description: |
+        Retrieve details for a specific conversation starter question, including
+        updated engagement metrics (replies, unique repliers).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Question ID
+          required: true
+          schema:
+            type: string
+            example: "q_1733356800000_abc123"
+      responses:
+        '200':
+          description: Question retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  question:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        description: Unique question identifier
+                      messageBaseId:
+                        type: string
+                        format: uuid
+                      messageBaseName:
+                        type: string
+                      question:
+                        type: string
+                      style:
+                        type: string
+                        enum: [open-ended, opinion, creative, technical, fun]
+                      generatedAt:
+                        type: string
+                        format: date-time
+                      postedAt:
+                        type: string
+                        format: date-time
+                      messageId:
+                        type: string
+                        format: uuid
+                      engagementMetrics:
+                        type: object
+                        properties:
+                          views:
+                            type: integer
+                            description: Number of views (currently always 0)
+                          replies:
+                            type: integer
+                            description: Number of replies to the question
+                          uniqueRepliers:
+                            type: integer
+                            description: Number of unique users who replied
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Question not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '501':
+          description: Daily question service not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters/stats:
+    get:
+      tags:
+        - Conversation Starters
+      summary: Get engagement statistics
+      description: |
+        Retrieve overall engagement statistics for all conversation starters,
+        including total questions, replies, and most engaging question style.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stats:
+                    type: object
+                    properties:
+                      totalQuestions:
+                        type: integer
+                        description: Total number of questions generated
+                        example: 15
+                      totalReplies:
+                        type: integer
+                        description: Total number of replies across all questions
+                        example: 87
+                      averageRepliesPerQuestion:
+                        type: number
+                        format: float
+                        description: Average number of replies per question
+                        example: 5.8
+                      mostEngagingStyle:
+                        type: string
+                        description: Question style with highest average engagement
+                        example: "creative"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '501':
+          description: Daily question service not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters/config:
+    get:
+      tags:
+        - Conversation Starters
+      summary: Get current configuration
+      description: |
+        Retrieve the current configuration for the conversation starter feature,
+        including schedule, target message base, and question style preferences.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  config:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                        description: Whether the feature is enabled
+                        example: true
+                      schedule:
+                        type: string
+                        description: Daily schedule in HH:MM format
+                        example: "09:00"
+                      targetMessageBaseId:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: ID of the message base to post questions to
+                      questionStyle:
+                        type: string
+                        enum: [auto, open-ended, opinion, creative, technical, fun]
+                        description: Style of questions to generate
+                        example: "auto"
+                      aiPersonality:
+                        type: string
+                        nullable: true
+                        description: Custom AI personality for question generation
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Conversation Starters
+      summary: Update configuration
+      description: |
+        Update the configuration for the conversation starter feature.
+        Note: Changes are in-memory only and will not persist across server restarts.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  description: Enable or disable the feature
+                schedule:
+                  type: string
+                  pattern: '^\d{2}:\d{2}$'
+                  description: Daily schedule in HH:MM format
+                  example: "09:00"
+                targetMessageBaseId:
                   type: string
                   format: uuid
+                  nullable: true
+                  description: ID of the message base to post questions to
+                questionStyle:
+                  type: string
+                  enum: [auto, open-ended, opinion, creative, technical, fun]
+                  description: Style of questions to generate
+                aiPersonality:
+                  type: string
+                  nullable: true
+                  description: Custom AI personality for question generation
       responses:
-        '204':
-          description: Door exited
+        '200':
+          description: Configuration updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Configuration updated (in-memory only)"
+                  config:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                      schedule:
+                        type: string
+                      targetMessageBaseId:
+                        type: string
+                        format: uuid
+                        nullable: true
+                      questionStyle:
+                        type: string
+                      aiPersonality:
+                        type: string
+                        nullable: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters/task/status:
+    get:
+      tags:
+        - Conversation Starters
+      summary: Get scheduled task status
+      description: |
+        Retrieve the status of the scheduled daily question task,
+        including whether it's enabled and when it last ran.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Task status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  configured:
+                    type: boolean
+                    description: Whether the task is configured
+                    example: true
+                  enabled:
+                    type: boolean
+                    description: Whether the task is enabled
+                    example: true
+                  schedule:
+                    type: string
+                    description: Task schedule in HH:MM format
+                    example: "09:00"
+                  lastRun:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: When the task last ran
+                  nextRun:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: When the task will run next
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters/task/trigger:
+    post:
+      tags:
+        - Conversation Starters
+      summary: Manually trigger the scheduled task
+      description: |
+        Manually trigger the daily question task to run immediately,
+        regardless of the configured schedule.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Task triggered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Daily question task triggered successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Task not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters/task/enable:
+    put:
+      tags:
+        - Conversation Starters
+      summary: Enable the scheduled task
+      description: Enable the daily question scheduled task
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Task enabled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Daily question task enabled"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Task not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversation-starters/task/disable:
+    put:
+      tags:
+        - Conversation Starters
+      summary: Disable the scheduled task
+      description: Disable the daily question scheduled task
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Task disabled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Daily question task disabled"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Task not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

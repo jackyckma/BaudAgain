@@ -10,6 +10,7 @@ import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
 import { WebSocketConnection } from './connection/WebSocketConnection.js';
 import { ConnectionManager } from './connection/ConnectionManager.js';
 
@@ -26,6 +27,7 @@ import type { WelcomeScreenContent, PromptContent } from '@baudagain/shared';
 import { ContentType } from '@baudagain/shared';
 import { registerAPIRoutes } from './api/routes.js';
 import { JWTUtil } from './auth/jwt.js';
+import { NotificationEventType, createNotificationEvent, UserJoinedPayload, UserLeftPayload } from './notifications/types.js';
 
 const server = Fastify({
   logger: {
@@ -46,7 +48,7 @@ const config = configLoader.getConfig();
 
 // Initialize JWT utility
 const jwtConfig = configLoader.getJWTConfig();
-const jwtUtil = new JWTUtil(jwtConfig as any); // Type assertion needed due to StringValue type complexity
+const jwtUtil = new JWTUtil(jwtConfig);
 server.log.info('JWT authentication initialized');
 
 // Initialize database
@@ -59,15 +61,28 @@ const { MessageBaseRepository } = await import('./db/repositories/MessageBaseRep
 const messageBaseRepository = new MessageBaseRepository(database);
 const { MessageRepository } = await import('./db/repositories/MessageRepository.js');
 const messageRepository = new MessageRepository(database);
+const { ArtGalleryRepository } = await import('./db/repositories/ArtGalleryRepository.js');
+const artGalleryRepository = new ArtGalleryRepository(database);
 
 // Initialize managers and renderers
 const connectionManager = new ConnectionManager(server.log);
 const sessionManager = new SessionManager(server.log);
 const terminalRenderer = new WebTerminalRenderer();
 
+// Initialize notification service
+const { NotificationService } = await import('./notifications/NotificationService.js');
+const notificationService = new NotificationService(server.log);
+server.log.info('Notification service initialized');
+
 // Initialize AI (if enabled)
 let aiSysOp: AISysOp | undefined;
 let aiService: AIService | undefined;
+let aiConfigAssistant: any | undefined;
+let artGenerator: any | undefined;
+let messageSummarizer: any | undefined;
+let dailyDigestService: any | undefined;
+let conversationStarter: any | undefined;
+let dailyQuestionService: any | undefined;
 try {
   if (config.ai.sysop.enabled) {
     const apiKey = configLoader.getAIApiKey();
@@ -78,7 +93,38 @@ try {
     });
     aiService = new AIService(aiProvider, server.log);
     aiSysOp = new AISysOp(aiService, config, server.log);
-    server.log.info('AI SysOp initialized successfully');
+    
+    // Initialize AI Configuration Assistant
+    const { AIConfigAssistant } = await import('./ai/AIConfigAssistant.js');
+    aiConfigAssistant = new AIConfigAssistant(aiProvider, configLoader, server.log);
+    
+    // Initialize ANSI Art Generator
+    const { ANSIArtGenerator } = await import('./services/ANSIArtGenerator.js');
+    artGenerator = new ANSIArtGenerator(aiProvider, server.log);
+    
+    // Initialize Message Summarizer
+    const { MessageSummarizer } = await import('./services/MessageSummarizer.js');
+    messageSummarizer = new MessageSummarizer(aiProvider, server.log);
+    
+    // Initialize Daily Digest Service
+    const { DailyDigestService } = await import('./services/DailyDigestService.js');
+    dailyDigestService = new DailyDigestService(aiProvider, server.log);
+    
+    // Initialize Conversation Starter
+    const { ConversationStarter } = await import('./services/ConversationStarter.js');
+    conversationStarter = new ConversationStarter(aiProvider, server.log);
+    
+    // Initialize Daily Question Service
+    const { DailyQuestionService } = await import('./services/DailyQuestionService.js');
+    dailyQuestionService = new DailyQuestionService(
+      conversationStarter,
+      messageRepository,
+      messageBaseRepository,
+      userRepository,
+      server.log
+    );
+    
+    server.log.info('AI SysOp, Configuration Assistant, Art Generator, Message Summarizer, Daily Digest, and Conversation Starter initialized successfully');
   } else {
     server.log.info('AI SysOp disabled in configuration');
   }
@@ -91,7 +137,36 @@ try {
 const { UserService } = await import('./services/UserService.js');
 const userService = new UserService(userRepository);
 const { MessageService } = await import('./services/MessageService.js');
-const messageService = new MessageService(messageBaseRepository, messageRepository, userRepository);
+const messageService = new MessageService(messageBaseRepository, messageRepository, userRepository, notificationService);
+const { DoorService } = await import('./services/DoorService.js');
+// DoorService will be initialized after doors are registered
+
+// Initialize Scheduled Task Service
+const { ScheduledTaskService } = await import('./services/ScheduledTaskService.js');
+const scheduledTaskService = new ScheduledTaskService(server.log);
+
+// Register daily question task if enabled
+if (config.aiFeatures?.dailyQuestion?.enabled && dailyQuestionService) {
+  const dailyQuestionConfig = config.aiFeatures.dailyQuestion;
+  scheduledTaskService.registerTask({
+    id: 'daily-question',
+    name: 'Daily Question of the Day',
+    schedule: dailyQuestionConfig.schedule,
+    enabled: dailyQuestionConfig.enabled,
+    handler: async () => {
+      try {
+        await dailyQuestionService.generateAndPostDailyQuestion(dailyQuestionConfig);
+        server.log.info('Daily question posted successfully');
+      } catch (error) {
+        server.log.error({ error }, 'Failed to post daily question');
+      }
+    },
+  });
+  server.log.info(
+    { schedule: dailyQuestionConfig.schedule },
+    'Daily question task registered'
+  );
+}
 
 // Initialize BBS Core and register handlers
 const bbsCore = new BBSCore(sessionManager, server.log);
@@ -101,6 +176,11 @@ const handlerDeps = {
   renderer: terminalRenderer,
   sessionManager,
   aiSysOp,
+  notificationService,
+  dailyDigestService,
+  messageRepository,
+  messageBaseRepository,
+  userService,
 };
 
 // Register AuthHandler first (takes precedence for CONNECTED/AUTHENTICATING states)
@@ -116,15 +196,38 @@ const doorHandler = new DoorHandler(doorHandlerDeps);
 const { OracleDoor } = await import('./doors/OracleDoor.js');
 const oracleDoor = new OracleDoor(aiService);
 doorHandler.registerDoor(oracleDoor);
+
+// Register Art Studio door game
+const { ArtStudioDoor } = await import('./doors/ArtStudioDoor.js');
+const artStudioDoor = new ArtStudioDoor(artGenerator, artGalleryRepository);
+doorHandler.registerDoor(artStudioDoor);
+
 bbsCore.registerHandler(doorHandler);
+
+// Initialize DoorService with registered doors
+const doorService = new DoorService(
+  doorHandler.getDoors(),
+  sessionManager,
+  doorSessionRepository
+);
 // Register MessageHandler before MenuHandler (takes precedence for message commands)
 const { MessageHandler } = await import('./handlers/MessageHandler.js');
 const messageHandlerDeps = {
   ...handlerDeps,
-  messageService
+  messageService,
+  messageSummarizer,
+  conversationStarter
 };
 const messageHandler = new MessageHandler(messageHandlerDeps);
 bbsCore.registerHandler(messageHandler);
+// Register ArtGalleryHandler before MenuHandler (takes precedence for art gallery commands)
+const { ArtGalleryHandler } = await import('./handlers/ArtGalleryHandler.js');
+const artGalleryHandlerDeps = {
+  ...handlerDeps,
+  artGalleryRepository
+};
+const artGalleryHandler = new ArtGalleryHandler(artGalleryHandlerDeps);
+bbsCore.registerHandler(artGalleryHandler);
 // Register MenuHandler for authenticated users
 bbsCore.registerHandler(new MenuHandler(handlerDeps));
 
@@ -132,6 +235,14 @@ bbsCore.registerHandler(new MenuHandler(handlerDeps));
 await server.register(cors, {
   origin: true, // Allow all origins in development
 });
+
+// Serve terminal client static files
+const terminalClientPath = path.join(projectRoot, 'client/terminal/dist');
+await server.register(fastifyStatic, {
+  root: terminalClientPath,
+  prefix: '/',
+});
+server.log.info(`Serving terminal client from ${terminalClientPath}`);
 
 // Register rate limiting
 await server.register(rateLimit, {
@@ -166,6 +277,9 @@ server.register(async function (fastify) {
 
     // Create session for this connection
     const session = sessionManager.createSession(connection.id);
+    
+    // Register connection with notification service
+    notificationService.registerClient(connection, session.userId);
 
     fastify.log.info(
       { connectionId: connection.id, sessionId: session.id },
@@ -204,6 +318,29 @@ server.register(async function (fastify) {
       try {
         const response = await bbsCore.processInput(session.id, input);
         await connection.send(response);
+        
+        // Update notification service if user authenticated
+        const updatedSession = sessionManager.getSession(session.id);
+        if (updatedSession?.userId && !notificationService.getClient(connection.id)?.authenticated) {
+          notificationService.authenticateClient(connection.id, updatedSession.userId);
+          
+          // Broadcast user joined event
+          const userJoinedPayload: UserJoinedPayload = {
+            userId: updatedSession.userId,
+            handle: updatedSession.handle || 'Unknown',
+            node: 1, // TODO: Implement proper node tracking
+          };
+          const userJoinedEvent = createNotificationEvent(
+            NotificationEventType.USER_JOINED,
+            userJoinedPayload
+          );
+          await notificationService.broadcastToAuthenticated(userJoinedEvent);
+          
+          fastify.log.info(
+            { userId: updatedSession.userId, handle: updatedSession.handle },
+            'User joined - notification broadcast'
+          );
+        }
       } catch (err) {
         fastify.log.error({ err, sessionId: session.id }, 'Error processing input');
         await connection.send('An error occurred. Please try again.\r\n');
@@ -211,7 +348,33 @@ server.register(async function (fastify) {
     });
 
     // Handle connection close
-    connection.onClose(() => {
+    connection.onClose(async () => {
+      // Get session info before removing it
+      const closingSession = sessionManager.getSession(session.id);
+      
+      // Broadcast user left event if user was authenticated
+      if (closingSession?.userId && closingSession.handle) {
+        const userLeftPayload: UserLeftPayload = {
+          userId: closingSession.userId,
+          handle: closingSession.handle,
+          node: 1, // TODO: Implement proper node tracking
+        };
+        const userLeftEvent = createNotificationEvent(
+          NotificationEventType.USER_LEFT,
+          userLeftPayload
+        );
+        
+        try {
+          await notificationService.broadcastToAuthenticated(userLeftEvent);
+          fastify.log.info(
+            { userId: closingSession.userId, handle: closingSession.handle },
+            'User left - notification broadcast'
+          );
+        } catch (err) {
+          fastify.log.error({ err }, 'Error broadcasting user left event');
+        }
+      }
+      
       sessionManager.removeSession(session.id);
     });
 
@@ -223,7 +386,7 @@ server.register(async function (fastify) {
 });
 
 // Register REST API routes for control panel
-await registerAPIRoutes(server, userRepository, sessionManager, jwtUtil, config, messageBaseRepository, messageService);
+await registerAPIRoutes(server, userRepository, sessionManager, jwtUtil, config, messageBaseRepository, messageService, doorService, notificationService, aiConfigAssistant, aiSysOp, artGalleryRepository, artGenerator, messageSummarizer, dailyQuestionService, scheduledTaskService);
 
 // Health check endpoint
 server.get('/health', async () => {
@@ -244,6 +407,10 @@ const shutdown = async () => {
   server.log.info('🛑 Initiating graceful shutdown...');
   
   try {
+    // Stop scheduled tasks
+    server.log.info('Stopping scheduled tasks...');
+    scheduledTaskService.shutdown();
+    
     // Send goodbye message to all connected users
     const connections = connectionManager.getAllConnections();
     const goodbyeMessage = '\r\n' +

@@ -129,4 +129,12 @@ export class UserService {
     const user = await this.userRepository.getUserByHandle(handle);
     return user || null;
   }
+  
+  /**
+   * Get user by ID
+   */
+  async getUserById(userId: string): Promise<User | null> {
+    const user = await this.userRepository.findById(userId);
+    return user || null;
+  }
 }

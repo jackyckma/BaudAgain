@@ -50,7 +50,7 @@ export class BBSDatabase {
       const tables = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{ name: string }>;
       const tableNames = tables.map(t => t.name);
       
-      const requiredTables = ['users', 'message_bases', 'messages', 'door_sessions', 'activity_log'];
+      const requiredTables = ['users', 'message_bases', 'messages', 'door_sessions', 'activity_log', 'art_gallery'];
       const missingTables = requiredTables.filter(t => !tableNames.includes(t));
       
       if (missingTables.length > 0) {

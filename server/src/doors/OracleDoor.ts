@@ -10,16 +10,20 @@ import type { Session } from '@baudagain/shared';
 import type { AIService } from '../ai/AIService.js';
 import { RateLimiter } from '../utils/RateLimiter.js';
 import { sanitizeInput } from '../utils/ValidationUtils.js';
+import { ANSIRenderingService, RENDER_CONTEXTS } from '../ansi/ANSIRenderingService.js';
+import type { FrameLine } from '../ansi/ANSIFrameBuilder.js';
 
 export class OracleDoor implements Door {
   id = 'oracle';
   name = 'The Oracle';
   description = 'Seek wisdom from the mystical Oracle';
   private rateLimiter: RateLimiter;
+  private renderingService: ANSIRenderingService;
   
   constructor(private aiService?: AIService) {
     // 10 requests per minute per user
     this.rateLimiter = new RateLimiter(10, 60000);
+    this.renderingService = new ANSIRenderingService();
   }
   
   /**
@@ -29,22 +33,35 @@ export class OracleDoor implements Door {
     // Check if this is a resumed session
     const isResuming = session.data.door?.history && session.data.door.history.length > 0;
     
-    let output = '\r\n';
-    output += '╔═══════════════════════════════════════════════════════╗\r\n';
-    output += '║              🔮 THE ORACLE 🔮                         ║\r\n';
-    output += '╠═══════════════════════════════════════════════════════╣\r\n';
+    const content: FrameLine[] = [
+      { text: '🔮 THE ORACLE 🔮', align: 'center' },
+      { text: '' },
+    ];
     
     if (isResuming) {
-      output += '║  You return to the dimly lit chamber...              ║\r\n';
-      output += '║  The Oracle remembers you.                           ║\r\n';
+      content.push(
+        { text: 'You return to the dimly lit chamber...' },
+        { text: 'The Oracle remembers you.' }
+      );
     } else {
-      output += '║  You enter a dimly lit chamber. Incense fills the    ║\r\n';
-      output += '║  air. A mysterious figure sits before a crystal ball.║\r\n';
+      content.push(
+        { text: 'You enter a dimly lit chamber. Incense fills the' },
+        { text: 'air. A mysterious figure sits before a crystal ball.' }
+      );
     }
     
-    output += '║                                                       ║\r\n';
-    output += '║  \x1b[35m"Ask, and you shall receive wisdom..."\x1b[0m              ║\r\n';
-    output += '╚═══════════════════════════════════════════════════════╝\r\n';
+    content.push(
+      { text: '' },
+      { text: '\x1b[35m"Ask, and you shall receive wisdom..."\x1b[0m' }
+    );
+    
+    let output = '\r\n';
+    output += this.renderingService.renderFrame(
+      content,
+      { width: 57, style: 'double' },
+      RENDER_CONTEXTS.TERMINAL_80,
+      false
+    );
     output += '\r\n';
     
     // Show recent history if resuming
@@ -91,8 +108,8 @@ export class OracleDoor implements Door {
       response = '🔮 The mists cloud my vision... The spirits are silent today.';
     } else {
       try {
-        // Show thinking message
-        const thinking = '\r\n\x1b[35m🔮 The Oracle gazes into the crystal ball...\x1b[0m\r\n\r\n';
+        // Show loading indicator
+        const thinking = '\r\n\x1b[35m🔮 The Oracle gazes into the crystal ball...\x1b[0m\r\n';
         
         // Generate mystical response
         const prompt = `You are a mystical oracle, a fortune teller with ancient wisdom. 
@@ -136,12 +153,21 @@ Keep your response under 150 characters. Be mysterious and profound.`;
         }
         
         return thinking + 
-               `\x1b[35m${response}\x1b[0m\r\n\r\n` +
+               `\r\n\x1b[35m${response}\x1b[0m\r\n\r\n` +
                'Enter your question (or type \x1b[33mQ\x1b[0m to leave): ';
         
       } catch (error) {
         console.error('Error generating Oracle response:', error);
-        response = '🔮 The spirits are restless... Try again, seeker.';
+        
+        // Provide more helpful error message
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        if (errorMsg.includes('timeout') || errorMsg.includes('ECONNREFUSED')) {
+          response = '🔮 The spirits are silent... The connection to the ethereal realm is weak.';
+        } else if (errorMsg.includes('rate limit')) {
+          response = '🔮 The spirits grow weary... Return in a moment, seeker.';
+        } else {
+          response = '🔮 The spirits are restless... Try again, seeker.';
+        }
         
         return '\r\n' +
                `\x1b[35m${response}\x1b[0m\r\n\r\n` +

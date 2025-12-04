@@ -1,6 +1,7 @@
 import fs from 'fs';
 import yaml from 'js-yaml';
 import path from 'path';
+import type { JWTConfig } from '../auth/jwt.js';
 
 /**
  * BBS Configuration Structure
@@ -48,6 +49,15 @@ export interface BBSConfig {
   };
   messageBases: MessageBaseConfig[];
   doors: DoorConfig[];
+  aiFeatures?: {
+    dailyQuestion?: {
+      enabled: boolean;
+      schedule: string;
+      targetMessageBaseId?: string | null;
+      questionStyle: 'auto' | 'open-ended' | 'opinion' | 'creative' | 'technical' | 'fun';
+      aiPersonality?: string | null;
+    };
+  };
 }
 
 export interface MessageBaseConfig {
@@ -231,7 +241,7 @@ export class ConfigLoader {
   /**
    * Get JWT configuration from environment
    */
-  getJWTConfig(): { secret: string; expiresIn?: string | number } {
+  getJWTConfig(): JWTConfig {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
       throw new Error('JWT_SECRET environment variable is required');
@@ -239,7 +249,8 @@ export class ConfigLoader {
 
     const expiresIn = process.env.JWT_EXPIRATION || '24h';
 
-    return { secret, expiresIn };
+    // Cast to StringValue since we know '24h' and similar formats are valid
+    return { secret, expiresIn: expiresIn as JWTConfig['expiresIn'] };
   }
 
   /**
