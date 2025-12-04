@@ -9,7 +9,7 @@ import type { FastifyReply } from 'fastify';
 // Mock FastifyReply
 function createMockReply() {
   const reply = {
-    code: vi.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
     send: vi.fn().mockReturnThis(),
   } as unknown as FastifyReply;
   return reply;
@@ -45,7 +45,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.sendError(reply, ErrorCode.BAD_REQUEST, 'Invalid request');
       
-      expect(reply.code).toHaveBeenCalledWith(400);
+      expect(reply.status).toHaveBeenCalledWith(400);
       expect(reply.send).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.objectContaining({
@@ -79,7 +79,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.sendBadRequestError(reply, 'Bad request');
       
-      expect(reply.code).toHaveBeenCalledWith(400);
+      expect(reply.status).toHaveBeenCalledWith(400);
     });
 
     it('should send unauthorized error', () => {
@@ -87,7 +87,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.sendUnauthorizedError(reply, 'Unauthorized');
       
-      expect(reply.code).toHaveBeenCalledWith(401);
+      expect(reply.status).toHaveBeenCalledWith(401);
     });
 
     it('should send forbidden error', () => {
@@ -95,7 +95,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.sendForbiddenError(reply, 'Forbidden');
       
-      expect(reply.code).toHaveBeenCalledWith(403);
+      expect(reply.status).toHaveBeenCalledWith(403);
     });
 
     it('should send not found error', () => {
@@ -103,7 +103,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.sendNotFoundError(reply, 'Not found');
       
-      expect(reply.code).toHaveBeenCalledWith(404);
+      expect(reply.status).toHaveBeenCalledWith(404);
     });
 
     it('should send conflict error', () => {
@@ -111,7 +111,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.sendConflictError(reply, 'Conflict');
       
-      expect(reply.code).toHaveBeenCalledWith(409);
+      expect(reply.status).toHaveBeenCalledWith(409);
     });
 
     it('should send rate limit error', () => {
@@ -119,7 +119,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.sendRateLimitError(reply, 'Rate limit exceeded');
       
-      expect(reply.code).toHaveBeenCalledWith(429);
+      expect(reply.status).toHaveBeenCalledWith(429);
     });
 
     it('should send internal error', () => {
@@ -127,7 +127,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.sendInternalError(reply, 'Internal error');
       
-      expect(reply.code).toHaveBeenCalledWith(500);
+      expect(reply.status).toHaveBeenCalledWith(500);
     });
 
     it('should send not implemented error', () => {
@@ -135,7 +135,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.sendNotImplementedError(reply, 'Not implemented');
       
-      expect(reply.code).toHaveBeenCalledWith(501);
+      expect(reply.status).toHaveBeenCalledWith(501);
     });
   });
 
@@ -146,7 +146,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.handleError(reply, error);
       
-      expect(reply.code).toHaveBeenCalledWith(404);
+      expect(reply.status).toHaveBeenCalledWith(404);
       expect(reply.send).toHaveBeenCalledWith(error.toAPIError());
     });
 
@@ -156,7 +156,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.handleError(reply, error);
       
-      expect(reply.code).toHaveBeenCalledWith(429);
+      expect(reply.status).toHaveBeenCalledWith(429);
     });
 
     it('should detect not found errors from message', () => {
@@ -165,7 +165,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.handleError(reply, error);
       
-      expect(reply.code).toHaveBeenCalledWith(404);
+      expect(reply.status).toHaveBeenCalledWith(404);
     });
 
     it('should detect conflict errors from message', () => {
@@ -174,7 +174,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.handleError(reply, error);
       
-      expect(reply.code).toHaveBeenCalledWith(409);
+      expect(reply.status).toHaveBeenCalledWith(409);
     });
 
     it('should default to bad request for generic errors', () => {
@@ -183,7 +183,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.handleError(reply, error);
       
-      expect(reply.code).toHaveBeenCalledWith(400);
+      expect(reply.status).toHaveBeenCalledWith(400);
     });
 
     it('should handle unknown error types', () => {
@@ -192,7 +192,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.handleError(reply, error);
       
-      expect(reply.code).toHaveBeenCalledWith(500);
+      expect(reply.status).toHaveBeenCalledWith(500);
     });
   });
 
@@ -204,7 +204,7 @@ describe('ErrorHandler', () => {
       const result = ErrorHandler.validateRequired(reply, fields, ['name', 'email']);
       
       expect(result).toBe(true);
-      expect(reply.code).not.toHaveBeenCalled();
+      expect(reply.status).not.toHaveBeenCalled();
     });
 
     it('should send error and return false when fields are missing', () => {
@@ -214,7 +214,7 @@ describe('ErrorHandler', () => {
       const result = ErrorHandler.validateRequired(reply, fields, ['name', 'email']);
       
       expect(result).toBe(false);
-      expect(reply.code).toHaveBeenCalledWith(400);
+      expect(reply.status).toHaveBeenCalledWith(400);
       expect(reply.send).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.objectContaining({
@@ -250,7 +250,7 @@ describe('ErrorHandler', () => {
       const result = ErrorHandler.checkServiceAvailable(reply, service, 'Test Service');
       
       expect(result).toBe(true);
-      expect(reply.code).not.toHaveBeenCalled();
+      expect(reply.status).not.toHaveBeenCalled();
     });
 
     it('should send error and return false when service is unavailable', () => {
@@ -259,7 +259,7 @@ describe('ErrorHandler', () => {
       const result = ErrorHandler.checkServiceAvailable(reply, null, 'Test Service');
       
       expect(result).toBe(false);
-      expect(reply.code).toHaveBeenCalledWith(501);
+      expect(reply.status).toHaveBeenCalledWith(501);
       expect(reply.send).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.objectContaining({
@@ -277,7 +277,7 @@ describe('ErrorHandler', () => {
       const result = ErrorHandler.checkPermission(reply, true);
       
       expect(result).toBe(true);
-      expect(reply.code).not.toHaveBeenCalled();
+      expect(reply.status).not.toHaveBeenCalled();
     });
 
     it('should send error and return false when permission is denied', () => {
@@ -286,7 +286,7 @@ describe('ErrorHandler', () => {
       const result = ErrorHandler.checkPermission(reply, false, 'Admin access required');
       
       expect(result).toBe(false);
-      expect(reply.code).toHaveBeenCalledWith(403);
+      expect(reply.status).toHaveBeenCalledWith(403);
       expect(reply.send).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.objectContaining({
@@ -305,7 +305,7 @@ describe('ErrorHandler', () => {
       const result = ErrorHandler.checkResourceExists(reply, resource, 'Test Resource');
       
       expect(result).toBe(resource);
-      expect(reply.code).not.toHaveBeenCalled();
+      expect(reply.status).not.toHaveBeenCalled();
     });
 
     it('should send error and return null when resource is null', () => {
@@ -314,7 +314,7 @@ describe('ErrorHandler', () => {
       const result = ErrorHandler.checkResourceExists(reply, null, 'Test Resource');
       
       expect(result).toBeNull();
-      expect(reply.code).toHaveBeenCalledWith(404);
+      expect(reply.status).toHaveBeenCalledWith(404);
       expect(reply.send).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.objectContaining({
@@ -330,7 +330,7 @@ describe('ErrorHandler', () => {
       const result = ErrorHandler.checkResourceExists(reply, undefined, 'Test Resource');
       
       expect(result).toBeNull();
-      expect(reply.code).toHaveBeenCalledWith(404);
+      expect(reply.status).toHaveBeenCalledWith(404);
     });
   });
 
