@@ -225,7 +225,7 @@ export class DoorHandler implements CommandHandler {
       session.state = SessionState.IN_MENU;
       // Return to menu immediately without requiring extra Enter
       const menuContent = {
-        type: ContentType.MENU,
+        type: ContentType.MENU as const,
         title: 'Main Menu',
         options: [
           { key: 'M', label: 'Message Bases', description: 'Read and post messages' },

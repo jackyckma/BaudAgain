@@ -182,7 +182,7 @@ export class ArtGalleryHandler implements CommandHandler {
       
       // Return to menu immediately without requiring extra Enter
       const menuContent = {
-        type: ContentType.MENU,
+        type: ContentType.MENU as const,
         title: 'Main Menu',
         options: [
           { key: 'M', label: 'Message Bases', description: 'Read and post messages' },

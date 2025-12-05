@@ -31,14 +31,19 @@ export class UserProfileHandler implements CommandHandler {
       }
 
       // Fetch user details
-      const user = await this.deps.userService.getUserById(session.userId as string);
+      const userId = session.userId;
+      if (!userId) {
+        return 'Error: User ID not found.\r\n';
+      }
+      
+      const user = await this.deps.userService.getUserById(userId);
       if (!user) {
         return 'Error: User profile not found.\r\n';
       }
 
       // Get stats
-      const messageCount = this.deps.messageRepository.getMessageCountByUser(session.userId as string);
-      const artCount = this.deps.artGalleryRepository.getArtPieceCountByUser(session.userId as string);
+      const messageCount = this.deps.messageRepository.getMessageCountByUser(userId);
+      const artCount = this.deps.artGalleryRepository.getArtPieceCountByUser(userId);
 
       return this.renderProfile(user, messageCount, artCount);
     } catch (error) {
