@@ -172,8 +172,16 @@ terminal.onData((data) => {
   }
 });
 
-// Initialize
-function initialize() {
+// Modem sound and splash screen handling
+const modemSound = document.getElementById('modem-sound') as HTMLAudioElement;
+const splashScreen = document.getElementById('splash-screen');
+const connectBtn = document.getElementById('connect-btn');
+const soundToggle = document.getElementById('sound-toggle');
+
+let soundEnabled = true;
+
+// Initialize terminal display
+function showTerminalHeader() {
   const title = 'BaudAgain BBS Terminal Client';
   const width = 62;
   const padding = Math.floor((width - title.length) / 2);
@@ -183,11 +191,79 @@ function initialize() {
   terminal.writeln(colors.cyan + '║' + colors.reset + colors.yellow + centeredTitle + colors.reset + colors.cyan + '║' + colors.reset);
   terminal.writeln(colors.cyan + '╚══════════════════════════════════════════════════════════════╝' + colors.reset);
   terminal.writeln('');
+}
+
+// Play modem sound
+function playModemSound() {
+  if (soundEnabled && modemSound) {
+    modemSound.currentTime = 0;
+    modemSound.volume = 0.5;
+    modemSound.play().catch(err => {
+      console.log('Could not play modem sound:', err);
+    });
+  }
+}
+
+// Stop modem sound
+function stopModemSound() {
+  if (modemSound) {
+    modemSound.pause();
+    modemSound.currentTime = 0;
+  }
+}
+
+// Handle connect button click
+function handleConnect() {
+  // Hide splash screen
+  if (splashScreen) {
+    splashScreen.classList.add('hidden');
+    setTimeout(() => {
+      splashScreen.style.display = 'none';
+    }, 500);
+  }
   
-  writeInfo('Connecting to BaudAgain BBS...');
+  // Show sound toggle
+  if (soundToggle) {
+    soundToggle.style.display = 'block';
+  }
   
-  // Connect WebSocket
-  connectWebSocket();
+  // Play modem sound
+  playModemSound();
+  
+  // Show terminal header
+  showTerminalHeader();
+  writeInfo('Dialing BaudAgain BBS...');
+  
+  // Stop sound after 3 seconds and connect
+  setTimeout(() => {
+    stopModemSound();
+    writeInfo('Connected!');
+    connectWebSocket();
+  }, 3000);
+}
+
+// Sound toggle
+if (soundToggle) {
+  soundToggle.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    soundToggle.textContent = soundEnabled ? '🔊 Sound' : '🔇 Muted';
+    if (!soundEnabled) {
+      stopModemSound();
+    }
+  });
+}
+
+// Initialize
+function initialize() {
+  // Set up connect button
+  if (connectBtn) {
+    connectBtn.addEventListener('click', handleConnect);
+  } else {
+    // Fallback if no splash screen (direct connect)
+    showTerminalHeader();
+    writeInfo('Connecting to BaudAgain BBS...');
+    connectWebSocket();
+  }
 }
 
 // Start the application

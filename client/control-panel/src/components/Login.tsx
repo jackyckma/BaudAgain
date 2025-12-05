@@ -82,6 +82,21 @@ function Login({ onLoginSuccess }: LoginProps) {
           <p className="text-gray-500 text-xs text-center mt-6">
             SysOp access required (access level 255)
           </p>
+
+          {/* Demo credentials hint */}
+          <div className="mt-6 pt-4 border-t border-gray-700">
+            <p className="text-gray-400 text-sm text-center mb-2">
+              🎮 Demo Credentials
+            </p>
+            <div className="bg-gray-900 rounded px-3 py-2 text-center">
+              <p className="text-cyan-400 font-mono text-sm">
+                Handle: <span className="text-yellow-400">sysop</span>
+              </p>
+              <p className="text-cyan-400 font-mono text-sm">
+                Password: <span className="text-yellow-400">demo123</span>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

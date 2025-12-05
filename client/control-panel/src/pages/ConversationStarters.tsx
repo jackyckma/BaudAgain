@@ -105,6 +105,7 @@ function ConversationStarters() {
           Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       });
 
       const data = await response.json();
@@ -131,6 +132,7 @@ function ConversationStarters() {
           Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       });
 
       const data = await response.json();
