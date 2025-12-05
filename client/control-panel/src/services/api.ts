@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:8080/api';
+// Use relative URL so it works in both development and production
+const API_BASE_URL = '/api';
 
 interface LoginResponse {
   token: string;
@@ -134,7 +135,7 @@ class APIClient {
   }
 
   async login(handle: string, password: string): Promise<LoginResponse> {
-    const response = await this.request<LoginResponse>('/login', {
+    const response = await this.request<LoginResponse>('/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify({ handle, password }),
     });
