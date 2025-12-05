@@ -7,6 +7,7 @@
 
 import { AIProvider, AIOptions, AIProviderError } from '../ai/AIProvider.js';
 import { ANSIColorizer, ColorName } from '../ansi/ANSIColorizer.js';
+import { ANSIWidthCalculator } from '../ansi/ANSIWidthCalculator.js';
 import { ANSIFrameBuilder, FrameLine } from '../ansi/ANSIFrameBuilder.js';
 import type { Message } from '../db/repositories/MessageRepository.js';
 import type { MessageBase } from '../db/repositories/MessageBaseRepository.js';
@@ -277,7 +278,8 @@ Guidelines:
 
     for (const word of words) {
       const testLine = currentLine ? `${currentLine} ${word}` : word;
-      if (testLine.length <= maxWidth) {
+      // Use ANSIWidthCalculator to calculate visual width instead of string length
+      if (ANSIWidthCalculator.calculate(testLine) <= maxWidth) {
         currentLine = testLine;
       } else {
         if (currentLine) {
@@ -333,7 +335,7 @@ Guidelines:
     plainLines.push('');
     plainLines.push(`Generated: ${summary.generatedAt.toLocaleString()}`);
 
-    const plain = plainLines.join('\n');
+    const plain = plainLines.join('\r\n');
 
     // Build colored version
     const coloredLines: string[] = [];
@@ -372,7 +374,7 @@ Guidelines:
     coloredLines.push('');
     coloredLines.push(ANSIColorizer.colorize(`Generated: ${summary.generatedAt.toLocaleString()}`, 'white'));
 
-    const colored = coloredLines.join('\n');
+    const colored = coloredLines.join('\r\n');
 
     // Build framed version
     const frameLines: FrameLine[] = [];
@@ -395,7 +397,7 @@ Guidelines:
       '\x1b[33m' // Yellow for title
     );
 
-    const framed = framedLines.join('\n');
+    const framed = framedLines.join('\r\n');
 
     return { plain, colored, framed };
   }

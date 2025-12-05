@@ -5,6 +5,19 @@
 **Hackathon:** Kiroween (kiroween.devpost.com)  
 **Category:** Resurrection — Bring your favorite dead technology back to life
 
+## 🌐 Live Demo
+
+**Try it now:** [http://baudagain-demo.ai-transformation.org:8080](http://baudagain-demo.ai-transformation.org:8080)
+
+- **Terminal Client:** Experience the retro BBS interface
+- **Control Panel:** [http://baudagain-demo.ai-transformation.org:8080/control-panel](http://baudagain-demo.ai-transformation.org:8080/control-panel)
+
+**Demo Credentials:**
+- Sysop: `sysop` / `demo123`
+- Sample users: `retrogeek`, `nightcrawler`, `pixelartist` (all use `demo123`)
+
+> Note: The demo may be reset periodically. Your data may not persist.
+
 ## Overview
 
 BaudAgain resurrects the Bulletin Board System (BBS) experience from the dial-up era, enhanced with modern AI capabilities. Host your own BBS as a simple web service, featuring:
@@ -26,7 +39,7 @@ BaudAgain resurrects the Bulletin Board System (BBS) experience from the dial-up
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/jackyckma/BaudAgain.git
 cd BaudAgain
 ```
 
@@ -279,6 +292,69 @@ Or use the **AI Configuration Assistant** in the control panel to configure via 
 - **Database:** SQLite (better-sqlite3)
 - **AI:** Anthropic Claude API
 - **Testing:** Vitest, fast-check (property-based testing)
+- **Deployment:** Docker, Docker Compose
+
+## 🐳 Docker Deployment
+
+The easiest way to deploy BaudAgain is with Docker.
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- Anthropic API key
+
+### Quick Start with Docker
+
+1. Clone the repository:
+```bash
+git clone https://github.com/jackyckma/BaudAgain.git
+cd BaudAgain
+```
+
+2. Create environment file:
+```bash
+cp .env.example .env
+# Edit .env and set:
+# - ANTHROPIC_API_KEY=your_api_key_here
+# - JWT_SECRET=$(openssl rand -base64 32)
+```
+
+3. Build and start:
+```bash
+docker-compose up -d
+```
+
+4. Access the BBS:
+- Terminal Client: http://localhost:8080
+- Control Panel: http://localhost:8080/control-panel
+
+### Docker Commands
+
+```bash
+# Build the image
+docker-compose build
+
+# Start in background
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+
+# Stop and remove volumes (removes all data!)
+docker-compose down -v
+```
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ANTHROPIC_API_KEY` | Yes | - | Anthropic Claude API key |
+| `JWT_SECRET` | Yes | - | Secret for JWT token signing |
+| `PORT` | No | 8080 | Server port |
+| `NODE_ENV` | No | production | Environment |
 
 ## Contributing
 

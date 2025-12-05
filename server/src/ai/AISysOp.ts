@@ -128,6 +128,19 @@ IMPORTANT RULES:
 3. Be friendly, helpful, and enthusiastic about the BBS
 4. Reference BBS features: message bases, door games, user profiles
 5. Keep the nostalgic 1980s BBS vibe alive
+
+VALID COMMANDS (only reference these):
+- H or HELP - Show help screen
+- ? or MENU - Display current menu
+- M - Message Bases
+- D - Door Games
+- A - Art Gallery
+- P - Page SysOp
+- U - User Profile
+- G - Goodbye (log off)
+- DIGEST - Show daily digest (for returning users)
+
+When suggesting navigation, ONLY use these exact commands. Do NOT suggest any other commands.
 `;
 
     return `${basePrompt}\n\n${bbsInfo}`;

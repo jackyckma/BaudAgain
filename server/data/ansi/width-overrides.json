@@ -1,0 +1,24 @@
+{
+  "description": "Overrides for character width calculations to match xterm.js/client rendering",
+  "forceNarrow": [
+    {
+      "range": ["0x1F300", "0x1F5FF"],
+      "comment": "Miscellaneous Symbols and Pictographs (Objects, Weather, Plants) - often render as narrow in standard terminal fonts"
+    },
+    {
+      "range": ["0x2600", "0x27BF"],
+      "comment": "Miscellaneous Symbols and Dingbats - often render as narrow"
+    },
+    {
+      "chars": ["0x1F4A1", "0x1F4EC", "0x1F3A8", "0x1F5BC"],
+      "comment": "Specific icons: Light Bulb, Open Mailbox, Palette, Frame with Picture"
+    }
+  ],
+  "forceWide": [
+    {
+      "range": ["0x1F600", "0x1F64F"],
+      "comment": "Emoticons (Faces) - typically render as wide"
+    }
+  ]
+}
+

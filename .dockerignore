@@ -1,0 +1,70 @@
+# Git
+.git
+.gitignore
+
+# Node modules (will be installed fresh in container)
+node_modules
+**/node_modules
+
+# Build outputs (will be built in container)
+dist
+**/dist
+
+# Development files
+.env
+.env.local
+.env.development
+.env.production.local
+.vscode
+.idea
+*.swp
+*.swo
+
+# Documentation (not needed in production)
+docs/
+*.md
+!README.md
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+**/testing/
+coverage/
+.nyc_output/
+
+# Kiro specs (development only)
+.kiro/
+
+# Cursor IDE
+.cursor/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Deployment scripts (not needed in image)
+deployment/
+
+# Screenshots and media
+screenshots/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*~
+
+# Database files (will use volume mount)
+data/bbs.db
+data/bbs.db-*
+server/data/bbs.db
+server/data/bbs.db-*
+
+# Keep ANSI art files (they're copied explicitly)
+# !data/ansi/
+

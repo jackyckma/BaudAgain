@@ -44,6 +44,7 @@ export interface DoorFlowState {
  * Tracks the state of message base interactions
  */
 export interface MessageFlowState {
+  showingBaseList?: boolean;
   inMessageBase?: boolean;
   currentBaseId?: string;
   readingMessage?: boolean;

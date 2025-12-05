@@ -32,7 +32,7 @@ export async function registerDoorRoutes(
     preHandler: authenticateUser 
   }, async (request, reply) => {
     if (!doorService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Door game service not available'
@@ -58,7 +58,7 @@ export async function registerDoorRoutes(
     },
   }, async (request, reply) => {
     if (!doorService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Door game service not available'
@@ -75,14 +75,14 @@ export async function registerDoorRoutes(
       return result;
     } catch (error) {
       if (error instanceof Error && error.message === 'Door game not found') {
-        reply.status(404).send({ 
+        reply.status(404 as any).send({ 
           error: {
             code: 'NOT_FOUND',
             message: 'Door game not found'
           }
         });
       } else {
-        reply.status(500).send({ 
+        reply.status(500 as any).send({ 
           error: {
             code: 'INTERNAL_ERROR',
             message: error instanceof Error ? error.message : 'Failed to enter door game'
@@ -104,7 +104,7 @@ export async function registerDoorRoutes(
     },
   }, async (request, reply) => {
     if (!doorService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Door game service not available'
@@ -123,35 +123,35 @@ export async function registerDoorRoutes(
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === 'Door game not found') {
-          reply.status(404).send({ 
+          reply.status(404 as any).send({ 
             error: {
               code: 'NOT_FOUND',
               message: 'Door game not found'
             }
           });
         } else if (error.message.includes('Session not found')) {
-          reply.status(400).send({ 
+          reply.status(400 as any).send({ 
             error: {
               code: 'INVALID_STATE',
               message: 'You must enter the door before sending input'
             }
           });
         } else if (error.message.includes('does not belong')) {
-          reply.status(403).send({ 
+          reply.status(403 as any).send({ 
             error: {
               code: 'FORBIDDEN',
               message: error.message
             }
           });
         } else if (error.message.includes('not in this door')) {
-          reply.status(400).send({ 
+          reply.status(400 as any).send({ 
             error: {
               code: 'INVALID_STATE',
               message: error.message
             }
           });
         } else {
-          reply.status(500).send({ 
+          reply.status(500 as any).send({ 
             error: {
               code: 'INTERNAL_ERROR',
               message: error.message
@@ -159,7 +159,7 @@ export async function registerDoorRoutes(
           });
         }
       } else {
-        reply.status(500).send({ 
+        reply.status(500 as any).send({ 
           error: {
             code: 'INTERNAL_ERROR',
             message: 'Failed to process door input'
@@ -181,7 +181,7 @@ export async function registerDoorRoutes(
     },
   }, async (request, reply) => {
     if (!doorService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Door game service not available'
@@ -200,28 +200,28 @@ export async function registerDoorRoutes(
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === 'Door game not found') {
-          reply.status(404).send({ 
+          reply.status(404 as any).send({ 
             error: {
               code: 'NOT_FOUND',
               message: 'Door game not found'
             }
           });
         } else if (error.message === 'Session not found') {
-          reply.status(404).send({ 
+          reply.status(404 as any).send({ 
             error: {
               code: 'NOT_FOUND',
               message: 'Session not found'
             }
           });
         } else if (error.message.includes('does not belong')) {
-          reply.status(403).send({ 
+          reply.status(403 as any).send({ 
             error: {
               code: 'FORBIDDEN',
               message: error.message
             }
           });
         } else {
-          reply.status(500).send({ 
+          reply.status(500 as any).send({ 
             error: {
               code: 'INTERNAL_ERROR',
               message: error.message
@@ -229,7 +229,7 @@ export async function registerDoorRoutes(
           });
         }
       } else {
-        reply.status(500).send({ 
+        reply.status(500 as any).send({ 
           error: {
             code: 'INTERNAL_ERROR',
             message: 'Failed to exit door game'
@@ -245,7 +245,7 @@ export async function registerDoorRoutes(
     preHandler: authenticateUser,
   }, async (request, reply) => {
     if (!doorService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Door game service not available'
@@ -262,14 +262,14 @@ export async function registerDoorRoutes(
       return sessionInfo;
     } catch (error) {
       if (error instanceof Error && error.message === 'Door game not found') {
-        reply.status(404).send({ 
+        reply.status(404 as any).send({ 
           error: {
             code: 'NOT_FOUND',
             message: 'Door game not found'
           }
         });
       } else {
-        reply.status(500).send({ 
+        reply.status(500 as any).send({ 
           error: {
             code: 'INTERNAL_ERROR',
             message: error instanceof Error ? error.message : 'Failed to get session info'
@@ -291,7 +291,7 @@ export async function registerDoorRoutes(
     },
   }, async (request, reply) => {
     if (!doorService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Door game service not available'
@@ -307,7 +307,7 @@ export async function registerDoorRoutes(
       const sessionInfo = doorService.getDoorSessionInfo(currentUser.id, id);
       
       if (!sessionInfo.hasSavedSession) {
-        reply.status(404).send({ 
+        reply.status(404 as any).send({ 
           error: {
             code: 'NOT_FOUND',
             message: 'No saved session found for this door'
@@ -320,14 +320,14 @@ export async function registerDoorRoutes(
       return result;
     } catch (error) {
       if (error instanceof Error && error.message === 'Door game not found') {
-        reply.status(404).send({ 
+        reply.status(404 as any).send({ 
           error: {
             code: 'NOT_FOUND',
             message: 'Door game not found'
           }
         });
       } else {
-        reply.status(500).send({ 
+        reply.status(500 as any).send({ 
           error: {
             code: 'INTERNAL_ERROR',
             message: error instanceof Error ? error.message : 'Failed to resume door session'
@@ -343,7 +343,7 @@ export async function registerDoorRoutes(
     preHandler: authenticateUser,
   }, async (request, reply) => {
     if (!doorService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Door game service not available'
@@ -369,7 +369,7 @@ export async function registerDoorRoutes(
     const currentUser = (request as any).user;
     
     if (currentUser.accessLevel < 255) {
-      reply.status(403).send({ 
+      reply.status(403 as any).send({ 
         error: {
           code: 'FORBIDDEN',
           message: 'Insufficient permissions'
@@ -379,7 +379,7 @@ export async function registerDoorRoutes(
     }
     
     if (!doorService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Door game service not available'
@@ -419,7 +419,7 @@ export async function registerDoorRoutes(
     preHandler: authenticateUser,
   }, async (request, reply) => {
     if (!doorService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Door game service not available'
@@ -433,7 +433,7 @@ export async function registerDoorRoutes(
     try {
       const door = doorService.getDoor(id);
       if (!door) {
-        reply.status(404).send({ 
+        reply.status(404 as any).send({ 
           error: {
             code: 'NOT_FOUND',
             message: 'Door game not found'
@@ -451,7 +451,7 @@ export async function registerDoorRoutes(
         timeout: 30 * 60 * 1000,
       };
     } catch (error) {
-      reply.status(500).send({ 
+      reply.status(500 as any).send({ 
         error: {
           code: 'INTERNAL_ERROR',
           message: error instanceof Error ? error.message : 'Failed to get door stats'

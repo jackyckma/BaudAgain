@@ -1,7 +1,7 @@
 import type { CommandHandler } from '../core/CommandHandler.js';
-import type { Session, SessionState, Menu, MenuOption, MenuFlowState, MessageContent } from '@baudagain/shared';
+import type { Session, Menu, MenuOption, MenuFlowState, MessageContent } from '@baudagain/shared';
+import { SessionState, ContentType } from '@baudagain/shared';
 import type { TerminalRenderer, MenuContent as MenuContentType } from '@baudagain/shared';
-import { ContentType } from '@baudagain/shared';
 import type { HandlerDependencies } from './HandlerDependencies.js';
 import { AIResponseHelper } from '../utils/AIResponseHelper.js';
 
@@ -66,8 +66,8 @@ export class MenuHandler implements CommandHandler {
   canHandle(command: string, session: Session): boolean {
     // Handle commands when authenticated or in menu
     return (
-      session.state === ('authenticated' as SessionState) ||
-      session.state === ('in_menu' as SessionState)
+      session.state === SessionState.AUTHENTICATED ||
+      session.state === SessionState.IN_MENU
     );
   }
 
@@ -90,6 +90,11 @@ export class MenuHandler implements CommandHandler {
     // Special commands
     if (upperCommand === 'MENU' || upperCommand === '?') {
       return this.displayMenu(currentMenuId);
+    }
+
+    // Handle HELP command
+    if (upperCommand === 'H' || upperCommand === 'HELP') {
+      return this.displayHelp();
     }
 
     // Handle DIGEST command
@@ -367,6 +372,55 @@ export class MenuHandler implements CommandHandler {
         'warning'
       );
     }
+  }
+
+  /**
+   * Display the help screen
+   */
+  private displayHelp(): string {
+    const lines: string[] = [];
+    const c = {
+      cyan: '\x1b[36m',
+      yellow: '\x1b[33m',
+      white: '\x1b[37m',
+      brightCyan: '\x1b[96m',
+      brightYellow: '\x1b[93m',
+      reset: '\x1b[0m',
+    };
+    
+    lines.push('');
+    lines.push(`${c.cyan}╔══════════════════════════════════════════════════════════════════════════════╗${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}${c.brightYellow}                              BaudAgain BBS Help                              ${c.reset}${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}╠══════════════════════════════════════════════════════════════════════════════╣${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}                                                                              ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}  ${c.brightCyan}Navigation Commands:${c.reset}                                                       ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}                                                                              ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    ${c.yellow}?${c.reset} or ${c.yellow}MENU${c.reset}  - Display the current menu                               ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    ${c.yellow}H${c.reset} or ${c.yellow}HELP${c.reset}  - Show this help screen                                  ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}                                                                              ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}  ${c.brightCyan}Main Menu Options:${c.reset}                                                         ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}                                                                              ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    ${c.yellow}M${c.reset} - Message Bases    Read and post messages                              ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    ${c.yellow}D${c.reset} - Door Games       Play interactive games like The Oracle             ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    ${c.yellow}A${c.reset} - Art Gallery      Browse AI-generated ANSI art                       ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    ${c.yellow}P${c.reset} - Page SysOp       Get help from the AI SysOp                         ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    ${c.yellow}U${c.reset} - User Profile     View and edit your profile                         ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    ${c.yellow}G${c.reset} - Goodbye          Log off the BBS                                    ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}                                                                              ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}  ${c.brightCyan}Special Commands:${c.reset}                                                          ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}                                                                              ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    ${c.yellow}DIGEST${c.reset} - Show daily digest (if available after 24+ hours away)          ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}                                                                              ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}  ${c.brightCyan}Tips:${c.reset}                                                                      ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}                                                                              ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    • Press ${c.yellow}Enter${c.reset} at any prompt to see the current menu                       ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    • Commands are not case-sensitive                                         ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}    • Type ${c.yellow}CANCEL${c.reset} to exit most interactive features                          ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}║${c.reset}                                                                              ${c.cyan}║${c.reset}`);
+    lines.push(`${c.cyan}╚══════════════════════════════════════════════════════════════════════════════╝${c.reset}`);
+    lines.push('');
+    
+    return lines.join('\r\n') + '\r\nCommand: ';
   }
 
   /**

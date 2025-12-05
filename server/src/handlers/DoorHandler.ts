@@ -8,7 +8,7 @@
 import type { CommandHandler } from '../core/CommandHandler.js';
 import type { HandlerDependencies } from './HandlerDependencies.js';
 import type { Session } from '@baudagain/shared';
-import { SessionState } from '@baudagain/shared';
+import { SessionState, TERMINAL_WIDTH, ContentType } from '@baudagain/shared';
 import type { Door } from '../doors/Door.js';
 import type { DoorSessionRepository } from '../db/repositories/DoorSessionRepository.js';
 import { NotificationEventType, createNotificationEvent, DoorEnteredPayload, DoorExitedPayload } from '../notifications/types.js';
@@ -22,7 +22,8 @@ export class DoorHandler implements CommandHandler {
   private doors: Map<string, Door> = new Map();
   private doorTimeoutMs: number = 30 * 60 * 1000; // 30 minutes default
   private timeoutCheckInterval: NodeJS.Timeout | null = null;
-  private readonly MAX_WIDTH = 80; // Maximum line width for terminal display
+  private readonly MAX_WIDTH = TERMINAL_WIDTH; // 80
+  private readonly BOX_WIDTH = TERMINAL_WIDTH - 2; // 78
   
   constructor(private deps: DoorHandlerDependencies) {
     // Start timeout checking
@@ -31,7 +32,7 @@ export class DoorHandler implements CommandHandler {
   
   /**
    * Enforce width limit on door output
-   * Intercepts door game output and ensures all lines respect 80-character limit
+   * Intercepts door output and ensures all lines respect MAX_WIDTH
    * 
    * @param output - Raw output from door game
    * @returns Width-enforced output
@@ -222,7 +223,21 @@ export class DoorHandler implements CommandHandler {
     if (cmd === 'Q') {
       session.data.door = undefined;
       session.state = SessionState.IN_MENU;
-      return '\r\nReturning to main menu...\r\n\r\n';
+      // Return to menu immediately without requiring extra Enter
+      const menuContent = {
+        type: ContentType.MENU,
+        title: 'Main Menu',
+        options: [
+          { key: 'M', label: 'Message Bases', description: 'Read and post messages' },
+          { key: 'D', label: 'Door Games', description: 'Play interactive games' },
+          { key: 'A', label: 'Art Gallery', description: 'View AI-generated ANSI art' },
+          { key: 'P', label: 'Page SysOp', description: 'Get help from the AI SysOp' },
+          { key: 'U', label: 'User Profile', description: 'View and edit your profile' },
+          { key: 'G', label: 'Goodbye', description: 'Log off the BBS' },
+        ],
+      };
+      return '\r\n\x1b[33mReturning to main menu...\x1b[0m\r\n\r\n' + 
+             this.deps.renderer.render(menuContent) + '\r\nCommand: ';
     }
     
     // Try to parse door selection (1, 2, 3, etc.)
@@ -423,37 +438,69 @@ export class DoorHandler implements CommandHandler {
     
     return exitMessage + 'Returning to main menu...\r\n\r\n';
   }
+
+  /**
+   * Helper to create borders
+   */
+  private getBorders() {
+    const width = this.BOX_WIDTH;
+    return {
+      top: '╔' + '═'.repeat(width) + '╗\r\n',
+      mid: '╠' + '═'.repeat(width) + '╣\r\n',
+      bot: '╚' + '═'.repeat(width) + '╝\r\n',
+      empty: '║' + ' '.repeat(width) + '║\r\n',
+      line: (text: string) => {
+        // Calculate visual width (strips ANSI codes, handles emojis correctly)
+        const visualWidth = ANSIWidthCalculator.calculate(text);
+        // Calculate needed padding
+        const paddingNeeded = Math.max(0, (width - 2) - visualWidth);
+        const padding = ' '.repeat(paddingNeeded);
+        return '║ ' + text + padding + ' ║\r\n';
+      },
+      center: (text: string) => {
+        const visualWidth = ANSIWidthCalculator.calculate(text);
+        const totalPadding = Math.max(0, (width - 2) - visualWidth);
+        const left = Math.floor(totalPadding / 2);
+        const right = totalPadding - left;
+        return '║ ' + ' '.repeat(left) + text + ' '.repeat(right) + ' ║\r\n';
+      }
+    };
+  }
   
   /**
    * Show the door games menu
    */
   private showDoorMenu(message?: string): string {
     let output = message || '';
+    const b = this.getBorders();
     
     output += '\r\n';
-    output += '╔═══════════════════════════════════════════════════════╗\r\n';
-    output += '║                   DOOR GAMES                          ║\r\n';
-    output += '╠═══════════════════════════════════════════════════════╣\r\n';
+    output += b.top;
+    output += b.center('DOOR GAMES');
+    output += b.mid;
     
     if (this.doors.size === 0) {
-      output += '║  No door games available                              ║\r\n';
+      output += b.line('No door games available');
     } else {
       let index = 1;
       for (const door of this.doors.values()) {
-        const line = `║  ${index}. ${door.name.padEnd(48)}║\r\n`;
-        output += line;
-        const descLine = `║     ${door.description.padEnd(47)}║\r\n`;
-        output += descLine;
+        const name = door.name.padEnd(48).substring(0, 48); // Ensure it fits
+        const line = `${index}. ${name}`;
+        output += b.line(line);
+        
+        const desc = door.description.padEnd(this.BOX_WIDTH - 6).substring(0, this.BOX_WIDTH - 6);
+        const descLine = `   ${desc}`;
+        output += b.line(descLine);
         index++;
       }
     }
     
-    output += '║                                                       ║\r\n';
-    output += '║  Q. Return to Main Menu                               ║\r\n';
-    output += '╚═══════════════════════════════════════════════════════╝\r\n';
+    output += b.empty;
+    output += b.line('Q. Return to Main Menu');
+    output += b.bot;
     output += '\r\nSelect a door (or Q to quit): ';
     
-    // Apply width enforcement to the menu
+    // Apply width enforcement to the menu (optional, but good for safety)
     return this.enforceWidth(output);
   }
 }

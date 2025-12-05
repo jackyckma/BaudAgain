@@ -43,7 +43,7 @@ export class AuthHandler implements CommandHandler {
     }
 
     // Assume it's a handle for login
-    return this.startLogin(command, session);
+    return await this.startLogin(command, session);
   }
 
   /**
@@ -80,7 +80,25 @@ export class AuthHandler implements CommandHandler {
   /**
    * Start login flow
    */
-  private startLogin(handle: string, session: Session): string {
+  private async startLogin(handle: string, session: Session): Promise<string> {
+    // Check if user exists
+    const isAvailable = await this.userService.isHandleAvailable(handle);
+    
+    if (isAvailable) {
+      // Handle available means user does NOT exist
+      const error: ErrorContent = {
+        type: ContentType.ERROR,
+        message: `Handle '${handle}' not found.`,
+      };
+      
+      const prompt: PromptContent = {
+        type: ContentType.PROMPT,
+        text: 'Enter your handle, or type NEW to register: ',
+      };
+
+      return this.deps.renderer.render(error) + '\r\n' + this.deps.renderer.render(prompt);
+    }
+
     const authState: AuthFlowState = {
       flow: 'login',
       step: 'password',
@@ -258,6 +276,7 @@ export class AuthHandler implements CommandHandler {
         options: [
           { key: 'M', label: 'Message Bases', description: 'Read and post messages' },
           { key: 'D', label: 'Door Games', description: 'Play interactive games' },
+          { key: 'A', label: 'Art Gallery', description: 'View AI-generated ANSI art' },
           { key: 'P', label: 'Page SysOp', description: 'Get help from the AI SysOp' },
           { key: 'U', label: 'User Profile', description: 'View and edit your profile' },
           { key: 'G', label: 'Goodbye', description: 'Log off the BBS' },
@@ -364,6 +383,7 @@ export class AuthHandler implements CommandHandler {
         options: [
           { key: 'M', label: 'Message Bases', description: 'Read and post messages' },
           { key: 'D', label: 'Door Games', description: 'Play interactive games' },
+          { key: 'A', label: 'Art Gallery', description: 'View AI-generated ANSI art' },
           { key: 'P', label: 'Page SysOp', description: 'Get help from the AI SysOp' },
           { key: 'U', label: 'User Profile', description: 'View and edit your profile' },
           { key: 'G', label: 'Goodbye', description: 'Log off the BBS' },

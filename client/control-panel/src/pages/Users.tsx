@@ -70,7 +70,7 @@ function Users() {
   }
 
   return (
-    <div>
+    <div className="w-full">
       <h2 className="text-3xl font-bold text-cyan-400 mb-6">User Management</h2>
       
       {error && (
@@ -79,8 +79,8 @@ function Users() {
         </div>
       )}
       
-      <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-        <table className="w-full">
+      <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-800">
+        <table className="min-w-full" style={{ tableLayout: 'auto' }}>
           <thead className="bg-gray-700">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">

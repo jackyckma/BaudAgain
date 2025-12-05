@@ -6,6 +6,7 @@
  */
 
 import type { Door } from './Door.js';
+import { TERMINAL_WIDTH } from '@baudagain/shared';
 import type { Session } from '@baudagain/shared';
 import type { AIService } from '../ai/AIService.js';
 import { RateLimiter } from '../utils/RateLimiter.js';
@@ -58,7 +59,7 @@ export class OracleDoor implements Door {
     let output = '\r\n';
     output += this.renderingService.renderFrame(
       content,
-      { width: 57, style: 'double' },
+      { width: TERMINAL_WIDTH, style: 'double' },
       RENDER_CONTEXTS.TERMINAL_80,
       false
     );

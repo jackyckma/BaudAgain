@@ -228,6 +228,16 @@ const artGalleryHandlerDeps = {
 };
 const artGalleryHandler = new ArtGalleryHandler(artGalleryHandlerDeps);
 bbsCore.registerHandler(artGalleryHandler);
+
+// Register UserProfileHandler
+const { UserProfileHandler } = await import('./handlers/UserProfileHandler.js');
+const userProfileHandlerDeps = {
+  ...handlerDeps,
+  artGalleryRepository
+};
+const userProfileHandler = new UserProfileHandler(userProfileHandlerDeps);
+bbsCore.registerHandler(userProfileHandler);
+
 // Register MenuHandler for authenticated users
 bbsCore.registerHandler(new MenuHandler(handlerDeps));
 
@@ -243,6 +253,15 @@ await server.register(fastifyStatic, {
   prefix: '/',
 });
 server.log.info(`Serving terminal client from ${terminalClientPath}`);
+
+// Serve control panel static files
+const controlPanelPath = path.join(projectRoot, 'client/control-panel/dist');
+await server.register(fastifyStatic, {
+  root: controlPanelPath,
+  prefix: '/control-panel/',
+  decorateReply: false, // Required for multiple static plugins
+});
+server.log.info(`Serving control panel from ${controlPanelPath}`);
 
 // Register rate limiting
 await server.register(rateLimit, {
@@ -413,10 +432,11 @@ const shutdown = async () => {
     
     // Send goodbye message to all connected users
     const connections = connectionManager.getAllConnections();
+    // Note: Each 🌙 emoji takes 2 columns in xterm.js, so reduce spacing by 1 for each emoji
     const goodbyeMessage = '\r\n' +
       '╔═══════════════════════════════════════════════════════════╗\r\n' +
       '║                                                           ║\r\n' +
-      '║              🌙 BAUDAGAIN BBS - GOODBYE 🌙                ║\r\n' +
+      '║             🌙 BAUDAGAIN BBS - GOODBYE 🌙               ║\r\n' +
       '║                                                           ║\r\n' +
       '╠═══════════════════════════════════════════════════════════╣\r\n' +
       '║                                                           ║\r\n' +
@@ -485,6 +505,7 @@ try {
   await server.listen({ port: PORT, host: HOST });
   console.log(`\n🖥️  BaudAgain BBS Server running on ws://localhost:${PORT}/ws`);
   console.log(`📊 Health check: http://localhost:${PORT}/health\n`);
+  console.log('🔍 Debug: ANSI Width Calculation Logic Updated (Version 2.0)');
 } catch (err) {
   server.log.error(err);
   process.exit(1);

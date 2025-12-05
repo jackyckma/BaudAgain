@@ -81,7 +81,7 @@ export async function registerSystemRoutes(
     },
   }, async (request, reply) => {
     if (!notificationService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Notification service not available'
@@ -92,7 +92,7 @@ export async function registerSystemRoutes(
 
     const requestUser = (request as any).user;
     if (requestUser.accessLevel < 255) {
-      reply.status(403).send({ 
+      reply.status(403 as any).send({ 
         error: {
           code: 'FORBIDDEN',
           message: 'Only administrators can send system announcements'
@@ -110,7 +110,7 @@ export async function registerSystemRoutes(
     if (expiresAt) {
       const expiresDate = new Date(expiresAt);
       if (expiresDate <= new Date()) {
-        reply.status(400).send({ 
+        reply.status(400 as any).send({ 
           error: {
             code: 'BAD_REQUEST',
             message: 'expiresAt must be in the future'
@@ -143,7 +143,7 @@ export async function registerSystemRoutes(
         'System announcement broadcast'
       );
 
-      reply.status(200).send({
+      reply.status(200 as any).send({
         success: true,
         message: 'Announcement sent successfully',
         announcement: {
@@ -155,7 +155,7 @@ export async function registerSystemRoutes(
       });
     } catch (error) {
       server.log.error({ error }, 'Error broadcasting system announcement');
-      reply.status(500).send({ 
+      reply.status(500 as any).send({ 
         error: {
           code: 'INTERNAL_ERROR',
           message: 'Failed to broadcast announcement'
@@ -176,7 +176,7 @@ export async function registerSystemRoutes(
     },
   }, async (request, reply) => {
     if (!aiSysOp) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'AI SysOp not available'
@@ -209,7 +209,7 @@ export async function registerSystemRoutes(
         'AI SysOp page request processed'
       );
 
-      reply.status(200).send({
+      reply.status(200 as any).send({
         response,
         responseTime,
       });
@@ -217,14 +217,14 @@ export async function registerSystemRoutes(
       server.log.error({ error, handle: requestUser.handle }, 'Error processing AI SysOp page');
       
       if (error instanceof Error && error.message.includes('timeout')) {
-        reply.status(504).send({ 
+        reply.status(504 as any).send({ 
           error: {
             code: 'TIMEOUT',
             message: 'AI SysOp response timeout (exceeded 5 seconds)'
           }
         });
       } else {
-        reply.status(500).send({ 
+        reply.status(500 as any).send({ 
           error: {
             code: 'INTERNAL_ERROR',
             message: 'Failed to get AI SysOp response'

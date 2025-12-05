@@ -6,6 +6,7 @@
  */
 
 import type { Door } from './Door.js';
+import { TERMINAL_WIDTH } from '@baudagain/shared';
 import type { Session } from '@baudagain/shared';
 import type { ANSIArtGenerator, ArtStyle, ColorTheme } from '../services/ANSIArtGenerator.js';
 import { RateLimiter } from '../utils/RateLimiter.js';
@@ -360,7 +361,7 @@ export class ArtStudioDoor implements Door {
     let output = '\r\n';
     output += this.renderingService.renderFrame(
       loadingContent,
-      { width: 57, style: 'double' },
+      { width: TERMINAL_WIDTH, style: 'double' },
       RENDER_CONTEXTS.TERMINAL_80,
       false
     );
@@ -386,7 +387,7 @@ export class ArtStudioDoor implements Door {
         {
           title: '🎨 ' + state.pendingDescription.substring(0, 40) + (state.pendingDescription.length > 40 ? '...' : ''),
           attribution: session.handle || 'Anonymous',
-          frameWidth: 70,
+          frameWidth: TERMINAL_WIDTH,
           includeTimestamp: false,
         }
       );
@@ -455,7 +456,7 @@ export class ArtStudioDoor implements Door {
     let output = '\r\n';
     output += this.renderingService.renderFrame(
       content,
-      { width: 57, style: 'double' },
+      { width: TERMINAL_WIDTH, style: 'double' },
       RENDER_CONTEXTS.TERMINAL_80,
       false // Don't validate since we're within door handler which enforces width
     );
@@ -480,7 +481,7 @@ export class ArtStudioDoor implements Door {
     let output = '\r\n';
     output += this.renderingService.renderFrame(
       content,
-      { width: 57, style: 'double' },
+      { width: TERMINAL_WIDTH, style: 'double' },
       RENDER_CONTEXTS.TERMINAL_80,
       false
     );
@@ -508,7 +509,7 @@ export class ArtStudioDoor implements Door {
     let output = '\r\n';
     output += this.renderingService.renderFrame(
       content,
-      { width: 57, style: 'double' },
+      { width: TERMINAL_WIDTH, style: 'double' },
       RENDER_CONTEXTS.TERMINAL_80,
       false
     );
@@ -535,7 +536,7 @@ export class ArtStudioDoor implements Door {
     let output = '\r\n';
     output += this.renderingService.renderFrame(
       content,
-      { width: 57, style: 'double' },
+      { width: TERMINAL_WIDTH, style: 'double' },
       RENDER_CONTEXTS.TERMINAL_80,
       false
     );
@@ -611,7 +612,7 @@ export class ArtStudioDoor implements Door {
     let output = '\r\n';
     output += this.renderingService.renderFrame(
       content,
-      { width: 57, style: 'double' },
+      { width: TERMINAL_WIDTH, style: 'double' },
       RENDER_CONTEXTS.TERMINAL_80,
       false
     );
@@ -642,7 +643,7 @@ export class ArtStudioDoor implements Door {
     output += '\r\n';
     output += this.renderingService.renderFrame(
       content,
-      { width: 57, style: 'double' },
+      { width: TERMINAL_WIDTH, style: 'double' },
       RENDER_CONTEXTS.TERMINAL_80,
       false
     );
@@ -676,7 +677,7 @@ export class ArtStudioDoor implements Door {
     let output = '\r\n';
     output += this.renderingService.renderFrame(
       content,
-      { width: 57, style: 'double' },
+      { width: TERMINAL_WIDTH, style: 'double' },
       RENDER_CONTEXTS.TERMINAL_80,
       false
     );
@@ -701,7 +702,6 @@ export class ArtStudioDoor implements Door {
     
     if (historyCount > 0) {
       output += `\x1b[90m[You created ${historyCount} piece${historyCount === 1 ? '' : 's'} of art this session]\x1b[0m\r\n`;
-      output += '\r\n';
     }
     
     output += '\x1b[90mYour art is not saved permanently, but the memories remain...\x1b[0m\r\n';

@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
 import { ANSIRenderingService, RenderContext, RENDER_CONTEXTS } from './ANSIRenderingService.js';
+import { TERMINAL_WIDTH } from '@baudagain/shared';
 
 export class ANSIRenderer {
   private templates: Map<string, string> = new Map();
@@ -104,7 +105,7 @@ export class ANSIRenderer {
     // Use ANSIRenderingService to render the frame
     return this.renderingService.renderFrame(
       lines,
-      { width: 80, style: 'double' },
+      { width: TERMINAL_WIDTH, style: 'double' },
       context
     );
   }
@@ -128,7 +129,7 @@ export class ANSIRenderer {
     return this.renderingService.renderFrameWithTitle(
       'BAUDAGAIN BBS - GOODBYE',
       content,
-      { width: 61, style: 'double' },
+      { width: TERMINAL_WIDTH, style: 'double' },
       context,
       'cyan'
     );

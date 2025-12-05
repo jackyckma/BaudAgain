@@ -6,7 +6,7 @@
  * Requirements: 17.1 - WebSocket Notification System
  */
 
-import { NotificationEventType } from './types';
+import { NotificationEventType } from './types.js';
 
 // ============================================================================
 // Event Type Groups

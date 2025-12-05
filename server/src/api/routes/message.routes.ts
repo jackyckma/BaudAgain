@@ -207,7 +207,7 @@ export async function registerMessageRoutes(
     preHandler: authenticateUser 
   }, async (request, reply) => {
     if (!messageBaseRepository || !messageService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Message base service not available'
@@ -222,7 +222,7 @@ export async function registerMessageRoutes(
     const base = messageBaseRepository.getMessageBase(id);
     
     if (!base) {
-      reply.status(404).send({ 
+      reply.status(404 as any).send({ 
         error: {
           code: 'NOT_FOUND',
           message: 'Message base not found'
@@ -233,7 +233,7 @@ export async function registerMessageRoutes(
     
     const canRead = await messageService.canUserReadBase(currentUser.id, id);
     if (!canRead) {
-      reply.status(403).send({ 
+      reply.status(403 as any).send({ 
         error: {
           code: 'FORBIDDEN',
           message: 'Insufficient access level to read this message base'
@@ -272,7 +272,7 @@ export async function registerMessageRoutes(
     },
   }, async (request, reply) => {
     if (!messageService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Message service not available'
@@ -284,7 +284,7 @@ export async function registerMessageRoutes(
     const currentUser = (request as any).user;
     
     if (currentUser.accessLevel < 255) {
-      reply.status(403).send({ 
+      reply.status(403 as any).send({ 
         error: {
           code: 'FORBIDDEN',
           message: 'Admin access required to create message bases'
@@ -321,7 +321,7 @@ export async function registerMessageRoutes(
         sortOrder: base.sortOrder,
       };
     } catch (error) {
-      reply.status(400).send({ 
+      reply.status(400 as any).send({ 
         error: {
           code: 'INVALID_INPUT',
           message: error instanceof Error ? error.message : 'Failed to create message base'
@@ -336,7 +336,7 @@ export async function registerMessageRoutes(
     preHandler: authenticateUser 
   }, async (request, reply) => {
     if (!messageService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Message service not available'
@@ -359,7 +359,7 @@ export async function registerMessageRoutes(
     
     const base = messageService.getMessageBase(id);
     if (!base) {
-      reply.status(404).send({ 
+      reply.status(404 as any).send({ 
         error: {
           code: 'NOT_FOUND',
           message: 'Message base not found'
@@ -370,7 +370,7 @@ export async function registerMessageRoutes(
     
     const canRead = await messageService.canUserReadBase(currentUser.id, id);
     if (!canRead) {
-      reply.status(403).send({ 
+      reply.status(403 as any).send({ 
         error: {
           code: 'FORBIDDEN',
           message: 'Insufficient access level to read this message base'
@@ -412,7 +412,7 @@ export async function registerMessageRoutes(
     preHandler: authenticateUser 
   }, async (request, reply) => {
     if (!messageService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Message service not available'
@@ -426,7 +426,7 @@ export async function registerMessageRoutes(
     
     const message = messageService.getMessage(id);
     if (!message) {
-      reply.status(404).send({ 
+      reply.status(404 as any).send({ 
         error: {
           code: 'NOT_FOUND',
           message: 'Message not found'
@@ -437,7 +437,7 @@ export async function registerMessageRoutes(
     
     const canRead = await messageService.canUserReadBase(currentUser.id, message.baseId);
     if (!canRead) {
-      reply.status(403).send({ 
+      reply.status(403 as any).send({ 
         error: {
           code: 'FORBIDDEN',
           message: 'Insufficient access level to read this message'
@@ -471,7 +471,7 @@ export async function registerMessageRoutes(
     },
   }, async (request, reply) => {
     if (!messageService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Message service not available'
@@ -489,7 +489,7 @@ export async function registerMessageRoutes(
     
     const base = messageService.getMessageBase(id);
     if (!base) {
-      reply.status(404).send({ 
+      reply.status(404 as any).send({ 
         error: {
           code: 'NOT_FOUND',
           message: 'Message base not found'
@@ -500,7 +500,7 @@ export async function registerMessageRoutes(
     
     const canWrite = await messageService.canUserWriteBase(currentUser.id, id);
     if (!canWrite) {
-      reply.status(403).send({ 
+      reply.status(403 as any).send({ 
         error: {
           code: 'FORBIDDEN',
           message: 'Insufficient access level to post to this message base'
@@ -529,14 +529,14 @@ export async function registerMessageRoutes(
       };
     } catch (error) {
       if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
-        reply.status(429).send({ 
+        reply.status(429 as any).send({ 
           error: {
             code: 'RATE_LIMIT_EXCEEDED',
             message: error.message
           }
         });
       } else {
-        reply.status(400).send({ 
+        reply.status(400 as any).send({ 
           error: {
             code: 'INVALID_INPUT',
             message: error instanceof Error ? error.message : 'Failed to post message'
@@ -558,7 +558,7 @@ export async function registerMessageRoutes(
     },
   }, async (request, reply) => {
     if (!messageService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Message service not available'
@@ -576,7 +576,7 @@ export async function registerMessageRoutes(
     
     const parentMessage = messageService.getMessage(id);
     if (!parentMessage) {
-      reply.status(404).send({ 
+      reply.status(404 as any).send({ 
         error: {
           code: 'NOT_FOUND',
           message: 'Parent message not found'
@@ -587,7 +587,7 @@ export async function registerMessageRoutes(
     
     const canWrite = await messageService.canUserWriteBase(currentUser.id, parentMessage.baseId);
     if (!canWrite) {
-      reply.status(403).send({ 
+      reply.status(403 as any).send({ 
         error: {
           code: 'FORBIDDEN',
           message: 'Insufficient access level to post to this message base'
@@ -617,14 +617,14 @@ export async function registerMessageRoutes(
       };
     } catch (error) {
       if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
-        reply.status(429).send({ 
+        reply.status(429 as any).send({ 
           error: {
             code: 'RATE_LIMIT_EXCEEDED',
             message: error.message
           }
         });
       } else {
-        reply.status(400).send({ 
+        reply.status(400 as any).send({ 
           error: {
             code: 'INVALID_INPUT',
             message: error instanceof Error ? error.message : 'Failed to post reply'
@@ -645,7 +645,7 @@ export async function registerMessageRoutes(
     },
   }, async (request, reply) => {
     if (!messageSummarizer) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Message summarization service not available'
@@ -655,7 +655,7 @@ export async function registerMessageRoutes(
     }
     
     if (!messageService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Message service not available'
@@ -670,7 +670,7 @@ export async function registerMessageRoutes(
     
     const base = messageService.getMessageBase(id);
     if (!base) {
-      reply.status(404).send({ 
+      reply.status(404 as any).send({ 
         error: {
           code: 'NOT_FOUND',
           message: 'Message base not found'
@@ -681,7 +681,7 @@ export async function registerMessageRoutes(
     
     const canRead = await messageService.canUserReadBase(currentUser.id, id);
     if (!canRead) {
-      reply.status(403).send({ 
+      reply.status(403 as any).send({ 
         error: {
           code: 'FORBIDDEN',
           message: 'Insufficient access level to read this message base'
@@ -709,7 +709,7 @@ export async function registerMessageRoutes(
         generatedAt: summary.generatedAt,
       };
     } catch (error) {
-      reply.status(500).send({ 
+      reply.status(500 as any).send({ 
         error: {
           code: 'INTERNAL_ERROR',
           message: error instanceof Error ? error.message : 'Failed to generate summary'
@@ -723,7 +723,7 @@ export async function registerMessageRoutes(
     preHandler: authenticateUser,
   }, async (request, reply) => {
     if (!messageSummarizer) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Message summarization service not available'
@@ -733,7 +733,7 @@ export async function registerMessageRoutes(
     }
     
     if (!messageService) {
-      reply.status(501).send({ 
+      reply.status(501 as any).send({ 
         error: {
           code: 'NOT_IMPLEMENTED',
           message: 'Message service not available'
@@ -747,7 +747,7 @@ export async function registerMessageRoutes(
     
     const base = messageService.getMessageBase(id);
     if (!base) {
-      reply.status(404).send({ 
+      reply.status(404 as any).send({ 
         error: {
           code: 'NOT_FOUND',
           message: 'Message base not found'
@@ -758,7 +758,7 @@ export async function registerMessageRoutes(
     
     const canRead = await messageService.canUserReadBase(currentUser.id, id);
     if (!canRead) {
-      reply.status(403).send({ 
+      reply.status(403 as any).send({ 
         error: {
           code: 'FORBIDDEN',
           message: 'Insufficient access level to read this message base'
@@ -772,7 +772,7 @@ export async function registerMessageRoutes(
     const cached = messageSummarizer.getCachedSummary(cacheKey);
     
     if (!cached) {
-      reply.status(404).send({ 
+      reply.status(404 as any).send({ 
         error: {
           code: 'NOT_FOUND',
           message: 'No cached summary available. Use POST /api/v1/message-bases/:id/summarize to generate one.'

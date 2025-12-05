@@ -199,7 +199,7 @@ export async function registerUserRoutes(
         preferences: updatedUser!.preferences,
       };
     } catch (error) {
-      reply.status(400).send({ 
+      reply.status(400 as any).send({ 
         error: {
           code: 'INVALID_INPUT',
           message: error instanceof Error ? error.message : 'Failed to update user'

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-// import { api } from '../services/api'; // TODO: Implement API calls
+// Backend API base URL
+const API_BASE_URL = 'http://localhost:8080';
 
 interface Question {
   id: string;
@@ -61,17 +62,17 @@ function ConversationStarters() {
   const loadData = async () => {
     try {
       const [questionsData, statusData, statsData, configData] = await Promise.all([
-        fetch('/api/v1/conversation-starters?limit=20', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        fetch(`${API_BASE_URL}/api/v1/conversation-starters?limit=20`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
         }).then(r => r.json()),
-        fetch('/api/v1/conversation-starters/task/status', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        fetch(`${API_BASE_URL}/api/v1/conversation-starters/task/status`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
         }).then(r => r.json()),
-        fetch('/api/v1/conversation-starters/stats', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        fetch(`${API_BASE_URL}/api/v1/conversation-starters/stats`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
         }).then(r => r.json()),
-        fetch('/api/v1/conversation-starters/config', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        fetch(`${API_BASE_URL}/api/v1/conversation-starters/config`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
         }).then(r => r.json()),
       ]);
 
@@ -98,10 +99,10 @@ function ConversationStarters() {
   const handleGenerateNow = async () => {
     setGenerating(true);
     try {
-      const response = await fetch('/api/v1/conversation-starters/generate', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/conversation-starters/generate`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
           'Content-Type': 'application/json',
         },
       });
@@ -124,10 +125,10 @@ function ConversationStarters() {
   const handleTriggerTask = async () => {
     setTriggering(true);
     try {
-      const response = await fetch('/api/v1/conversation-starters/task/trigger', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/conversation-starters/task/trigger`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
           'Content-Type': 'application/json',
         },
       });
@@ -150,10 +151,10 @@ function ConversationStarters() {
   const handleToggleTask = async (enable: boolean) => {
     try {
       const endpoint = enable ? 'enable' : 'disable';
-      const response = await fetch(`/api/v1/conversation-starters/task/${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/conversation-starters/task/${endpoint}`, {
         method: 'PUT',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
           'Content-Type': 'application/json',
         },
       });

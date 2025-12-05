@@ -7,10 +7,11 @@
 import type { CommandHandler } from '../core/CommandHandler.js';
 import type { HandlerDependencies } from './HandlerDependencies.js';
 import type { Session } from '@baudagain/shared';
-import { SessionState, ContentType } from '@baudagain/shared';
+import { SessionState, ContentType, TERMINAL_WIDTH } from '@baudagain/shared';
 import type { MessageService } from '../services/MessageService.js';
 import type { MessageBase } from '../db/repositories/MessageBaseRepository.js';
 import type { Message } from '../db/repositories/MessageRepository.js';
+import { ANSIWidthCalculator } from '../ansi/ANSIWidthCalculator.js';
 
 interface MessageFlowState {
   showingBaseList?: boolean;
@@ -38,14 +39,16 @@ export interface MessageHandlerDependencies extends HandlerDependencies {
 }
 
 export class MessageHandler implements CommandHandler {
+  private readonly BOX_WIDTH = TERMINAL_WIDTH - 2; // 78
+
   constructor(private deps: MessageHandlerDependencies) {}
   
   /**
    * Check if this handler can handle the command
    */
   canHandle(command: string, session: Session): boolean {
-    // Handle if user is in message base flow
-    if (session.data.message?.inMessageBase) {
+    // Handle if user is in message base flow or showing list
+    if (session.data.message?.inMessageBase || session.data.message?.showingBaseList) {
       return true;
     }
     
@@ -162,31 +165,60 @@ export class MessageHandler implements CommandHandler {
   }
   
   /**
+   * Helper to create borders
+   */
+  private getBorders() {
+    const width = this.BOX_WIDTH;
+    return {
+      top: '╔' + '═'.repeat(width) + '╗\r\n',
+      mid: '╠' + '═'.repeat(width) + '╣\r\n',
+      bot: '╚' + '═'.repeat(width) + '╝\r\n',
+      empty: '║' + ' '.repeat(width) + '║\r\n',
+      line: (text: string) => {
+        // Calculate visual width (strips ANSI codes, handles emojis correctly)
+        const visualWidth = ANSIWidthCalculator.calculate(text);
+        // Calculate needed padding
+        const paddingNeeded = Math.max(0, (width - 2) - visualWidth);
+        const padding = ' '.repeat(paddingNeeded);
+        return '║ ' + text + padding + ' ║\r\n';
+      },
+      center: (text: string) => {
+        const visualWidth = ANSIWidthCalculator.calculate(text);
+        const totalPadding = Math.max(0, (width - 2) - visualWidth);
+        const left = Math.floor(totalPadding / 2);
+        const right = totalPadding - left;
+        return '║ ' + ' '.repeat(left) + text + ' '.repeat(right) + ' ║\r\n';
+      }
+    };
+  }
+
+  /**
    * Show list of message bases
    */
   private showMessageBaseList(session: Session): string {
     const userAccessLevel = session.userId ? 10 : 0; // TODO: Get actual access level
     const bases = this.deps.messageService.getAccessibleMessageBases(userAccessLevel);
     
+    const b = this.getBorders();
     let output = '\r\n';
-    output += '╔═══════════════════════════════════════════════════════╗\r\n';
-    output += '║                  MESSAGE BASES                        ║\r\n';
-    output += '╠═══════════════════════════════════════════════════════╣\r\n';
+    output += b.top;
+    output += b.center('MESSAGE BASES');
+    output += b.mid;
     
     if (bases.length === 0) {
-      output += '║  No message bases available                           ║\r\n';
+      output += b.line('No message bases available');
     } else {
       bases.forEach((base, index) => {
         const num = (index + 1).toString().padEnd(2);
-        const name = base.name.padEnd(30).substring(0, 30);
+        const name = base.name.padEnd(45).substring(0, 45);
         const count = `(${base.postCount})`.padStart(6);
-        output += `║  ${num}. ${name} ${count}           ║\r\n`;
+        output += b.line(`${num}. ${name} ${count}`);
       });
     }
     
-    output += '║                                                       ║\r\n';
-    output += '║  Q. Return to Main Menu                               ║\r\n';
-    output += '╚═══════════════════════════════════════════════════════╝\r\n';
+    output += b.empty;
+    output += b.line('Q. Return to Main Menu');
+    output += b.bot;
     output += '\r\nSelect a message base (or Q to quit): ';
     
     return output;
@@ -252,41 +284,40 @@ export class MessageHandler implements CommandHandler {
     
     const messages = this.deps.messageService.getMessages(messageState.currentBaseId, 20);
     
+    const b = this.getBorders();
     let output = '\r\n';
-    output += `╔═══════════════════════════════════════════════════════╗\r\n`;
-    output += `║  ${base.name.padEnd(52)}║\r\n`;
-    output += `╠═══════════════════════════════════════════════════════╣\r\n`;
+    output += b.top;
+    output += b.center(base.name);
+    output += b.mid;
     
     if (messages.length === 0) {
-      output += '║  No messages yet. Be the first to post!              ║\r\n';
+      output += b.line('No messages yet. Be the first to post!');
     } else {
       messages.forEach((msg, index) => {
         const num = (index + 1).toString().padEnd(3);
-        const subject = msg.subject.padEnd(35).substring(0, 35);
-        const author = (msg.authorHandle || 'Unknown').padEnd(12).substring(0, 12);
-        output += `║ ${num} ${subject} ${author} ║\r\n`;
+        const subject = msg.subject.padEnd(45).substring(0, 45);
+        const author = (msg.authorHandle || 'Unknown').padEnd(15).substring(0, 15);
+        output += b.line(`${num} ${subject} ${author}`);
       });
     }
     
     // Add conversation starters section if available
     if (this.deps.conversationStarter && messages.length > 0) {
-      output += '║                                                       ║\r\n';
-      output += '║  \x1b[36m💡 Need inspiration? Try [C] for conversation\x1b[0m     ║\r\n';
-      output += '║  \x1b[36m   starters!\x1b[0m                                      ║\r\n';
+      output += b.empty;
+      output += b.line('\x1b[36m💡 Need inspiration? Try [C] for conversation starters!\x1b[0m');
     }
     
-    output += '║                                                       ║\r\n';
+    output += b.empty;
     
     // Update command menu based on available features
+    let menuText = '[#] Read  [P] Post';
     if (this.deps.conversationStarter && messages.length > 0) {
-      output += '║  [#] Read  [P] Post  [C] Starters                     ║\r\n';
-      output += '║  [U] Catch Me Up  [S] Summarize  [Q] Back            ║\r\n';
-    } else {
-      output += '║  [#] Read  [P] Post  [U] Catch Me Up                  ║\r\n';
-      output += '║  [S] Summarize  [Q] Back                              ║\r\n';
+        menuText += '  [C] Starters';
     }
+    menuText += '  [U] Catch Me Up  [S] Summarize  [Q] Back';
     
-    output += '╚═══════════════════════════════════════════════════════╝\r\n';
+    output += b.line(menuText);
+    output += b.bot;
     output += '\r\nCommand: ';
     
     return output;
@@ -311,20 +342,21 @@ export class MessageHandler implements CommandHandler {
     messageState.readingMessage = true;
     messageState.currentMessageId = message.id;
     
+    const b = this.getBorders();
     let output = '\r\n';
-    output += '╔═══════════════════════════════════════════════════════╗\r\n';
-    output += `║ From: ${(message.authorHandle || 'Unknown').padEnd(47)}║\r\n`;
-    output += `║ Subject: ${message.subject.padEnd(44).substring(0, 44)}║\r\n`;
-    output += `║ Date: ${message.createdAt.toLocaleString().padEnd(47)}║\r\n`;
-    output += '╠═══════════════════════════════════════════════════════╣\r\n';
+    output += b.top;
+    output += b.line(`From: ${(message.authorHandle || 'Unknown')}`);
+    output += b.line(`Subject: ${message.subject}`);
+    output += b.line(`Date: ${message.createdAt.toLocaleString()}`);
+    output += b.mid;
     
     // Word wrap the body
-    const lines = this.wordWrap(message.body, 53);
+    const lines = this.wordWrap(message.body, this.BOX_WIDTH - 4);
     lines.forEach(line => {
-      output += `║ ${line.padEnd(53)}║\r\n`;
+      output += b.line(line);
     });
     
-    output += '╚═══════════════════════════════════════════════════════╝\r\n';
+    output += b.bot;
     output += '\r\nPress Enter to continue: ';
     
     return output;
@@ -368,9 +400,10 @@ export class MessageHandler implements CommandHandler {
     messageState.postingMessage = true;
     messageState.postStep = 'subject';
     
-    return '\r\n╔═══════════════════════════════════════════════════════╗\r\n' +
-           '║                  POST NEW MESSAGE                     ║\r\n' +
-           '╚═══════════════════════════════════════════════════════╝\r\n' +
+    const b = this.getBorders();
+    return '\r\n' + b.top +
+           b.center('POST NEW MESSAGE') +
+           b.bot +
            '\r\nEnter subject (or CANCEL to abort): ';
   }
   
@@ -535,33 +568,34 @@ export class MessageHandler implements CommandHandler {
    * Display conversation starters
    */
   private displayConversationStarters(starters: any[], session: Session, messageState: MessageFlowState): string {
+    const b = this.getBorders();
     let output = '';
-    output += '╔═══════════════════════════════════════════════════════╗\r\n';
-    output += '║           \x1b[36m💡 CONVERSATION STARTERS\x1b[0m                     ║\r\n';
-    output += '╠═══════════════════════════════════════════════════════╣\r\n';
-    output += '║                                                       ║\r\n';
-    output += '║  Pick a question to start a new discussion:          ║\r\n';
-    output += '║                                                       ║\r\n';
+    output += b.top;
+    output += b.center('\x1b[36m💡 CONVERSATION STARTERS\x1b[0m');
+    output += b.mid;
+    output += b.empty;
+    output += b.line('Pick a question to start a new discussion:');
+    output += b.empty;
     
     starters.forEach((starter, index) => {
       const num = (index + 1).toString();
       const question = starter.question;
       
       // Word wrap the question to fit in the frame
-      const lines = this.wordWrap(question, 50);
+      const lines = this.wordWrap(question, this.BOX_WIDTH - 6);
       lines.forEach((line, lineIndex) => {
         if (lineIndex === 0) {
-          output += `║  \x1b[33m${num}.\x1b[0m ${line.padEnd(50)}║\r\n`;
+          output += b.line(`  \x1b[33m${num}.\x1b[0m ${line}`);
         } else {
-          output += `║     ${line.padEnd(50)}║\r\n`;
+          output += b.line(`     ${line}`);
         }
       });
       
-      output += '║                                                       ║\r\n';
+      output += b.empty;
     });
     
-    output += '║  Select [1-' + starters.length + '] to use as subject, or [Q] to go back   ║\r\n';
-    output += '╚═══════════════════════════════════════════════════════╝\r\n';
+    output += b.line(`Select [1-${starters.length}] to use as subject, or [Q] to go back`);
+    output += b.bot;
     output += '\r\nYour choice: ';
     
     return output;
@@ -594,9 +628,10 @@ export class MessageHandler implements CommandHandler {
         // Skip to body prompt since we already have the subject
         messageState.postStep = 'body';
         
-        return '\r\n╔═══════════════════════════════════════════════════════╗\r\n' +
-               '║                  POST NEW MESSAGE                     ║\r\n' +
-               '╚═══════════════════════════════════════════════════════╝\r\n' +
+        const b = this.getBorders();
+        return '\r\n' + b.top +
+               b.center('POST NEW MESSAGE') +
+               b.bot +
                `\r\n\x1b[36mSubject:\x1b[0m ${selectedStarter.question}\r\n\r\n` +
                'Enter message body (or CANCEL to abort): ';
       }
@@ -616,8 +651,10 @@ export class MessageHandler implements CommandHandler {
     let currentLine = '';
     
     for (const word of words) {
-      if (currentLine.length + word.length + 1 <= width) {
-        currentLine += (currentLine ? ' ' : '') + word;
+      // Use ANSIWidthCalculator to determine if line fits
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      if (ANSIWidthCalculator.calculate(testLine) <= width) {
+        currentLine = testLine;
       } else {
         if (currentLine) lines.push(currentLine);
         currentLine = word;
@@ -651,18 +688,19 @@ export class MessageHandler implements CommandHandler {
     
     messageState.confirmingSummary = true;
     
+    const b = this.getBorders();
     let output = '\r\n';
-    output += '╔═══════════════════════════════════════════════════════╗\r\n';
-    output += '║              THREAD SUMMARIZATION                     ║\r\n';
-    output += '╠═══════════════════════════════════════════════════════╣\r\n';
-    output += '║                                                       ║\r\n';
-    output += `║  Messages to analyze: ${messages.length.toString().padEnd(32)}║\r\n`;
-    output += '║                                                       ║\r\n';
-    output += '║  \x1b[33m⚠ Note: This uses AI and may take a few seconds\x1b[0m    ║\r\n';
-    output += '║                                                       ║\r\n';
-    output += '║  Generate summary? [Y/N]                              ║\r\n';
-    output += '║                                                       ║\r\n';
-    output += '╚═══════════════════════════════════════════════════════╝\r\n';
+    output += b.top;
+    output += b.center('THREAD SUMMARIZATION');
+    output += b.mid;
+    output += b.empty;
+    output += b.line(`Messages to analyze: ${messages.length}`);
+    output += b.empty;
+    output += b.line('\x1b[33m⚠ Note: This uses AI and may take a few seconds\x1b[0m');
+    output += b.empty;
+    output += b.line('Generate summary? [Y/N]');
+    output += b.empty;
+    output += b.bot;
     output += '\r\nYour choice: ';
     
     return output;
@@ -699,7 +737,7 @@ export class MessageHandler implements CommandHandler {
         maxMessages: 50,
       });
       
-      const formatted = this.deps.messageSummarizer.formatSummary(summary, 80);
+      const formatted = this.deps.messageSummarizer.formatSummary(summary, TERMINAL_WIDTH);
       
       messageState.viewingSummary = true;
       
@@ -752,34 +790,36 @@ export class MessageHandler implements CommandHandler {
     // Get messages since last login
     const unreadMessages = this.deps.messageService.getMessagesSince(messageState.currentBaseId, lastLogin);
     
+    const b = this.getBorders();
+    
     if (unreadMessages.length === 0) {
-      return '\r\n╔═══════════════════════════════════════════════════════╗\r\n' +
-             '║              \x1b[36m📬 CATCH ME UP\x1b[0m                          ║\r\n' +
-             '╠═══════════════════════════════════════════════════════╣\r\n' +
-             '║                                                       ║\r\n' +
-             '║  \x1b[32m✓ You\'re all caught up!\x1b[0m                           ║\r\n' +
-             '║                                                       ║\r\n' +
-             '║  No new messages since your last visit.              ║\r\n' +
-             '║                                                       ║\r\n' +
-             '╚═══════════════════════════════════════════════════════╝\r\n' +
+      return '\r\n' + b.top +
+             b.center('\x1b[36m📬 CATCH ME UP\x1b[0m') +
+             b.mid +
+             b.empty +
+             b.line('\x1b[32m✓ You\'re all caught up!\x1b[0m') +
+             b.empty +
+             b.line('No new messages since your last visit.') +
+             b.empty +
+             b.bot +
              '\r\nPress Enter to continue: ';
     }
     
     messageState.confirmingCatchUp = true;
     
     let output = '\r\n';
-    output += '╔═══════════════════════════════════════════════════════╗\r\n';
-    output += '║              \x1b[36m📬 CATCH ME UP\x1b[0m                          ║\r\n';
-    output += '╠═══════════════════════════════════════════════════════╣\r\n';
-    output += '║                                                       ║\r\n';
-    output += `║  Unread messages: ${unreadMessages.length.toString().padEnd(34)}║\r\n`;
-    output += `║  Since: ${lastLogin.toLocaleString().padEnd(42).substring(0, 42)}║\r\n`;
-    output += '║                                                       ║\r\n';
-    output += '║  \x1b[33m⚠ Note: This uses AI and may take a few seconds\x1b[0m    ║\r\n';
-    output += '║                                                       ║\r\n';
-    output += '║  Generate summary? [Y/N]                              ║\r\n';
-    output += '║                                                       ║\r\n';
-    output += '╚═══════════════════════════════════════════════════════╝\r\n';
+    output += b.top;
+    output += b.center('\x1b[36m📬 CATCH ME UP\x1b[0m');
+    output += b.mid;
+    output += b.empty;
+    output += b.line(`Unread messages: ${unreadMessages.length}`);
+    output += b.line(`Since: ${lastLogin.toLocaleString()}`);
+    output += b.empty;
+    output += b.line('\x1b[33m⚠ Note: This uses AI and may take a few seconds\x1b[0m');
+    output += b.empty;
+    output += b.line('Generate summary? [Y/N]');
+    output += b.empty;
+    output += b.bot;
     output += '\r\nYour choice: ';
     
     return output;
@@ -842,7 +882,7 @@ export class MessageHandler implements CommandHandler {
       const summary = await Promise.race([summaryPromise, timeoutPromise]);
       
       // Format the summary with proper width
-      const formatted = this.deps.messageSummarizer.formatSummary(summary, 80);
+      const formatted = this.deps.messageSummarizer.formatSummary(summary, TERMINAL_WIDTH);
       
       messageState.viewingCatchUp = true;
       

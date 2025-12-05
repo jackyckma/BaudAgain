@@ -71,8 +71,9 @@ export abstract class BaseTerminalRenderer implements TerminalRenderer {
 
   protected renderWelcomeScreen(content: WelcomeScreenContent): string {
     const lines: string[] = [];
-    // Use TERMINAL_WIDTH - 2 for borders - 2*8 for padding = 62
-    const boxWidth = TERMINAL_WIDTH - 2 - 16;
+    // Use full terminal width (80 chars)
+    // Box width is inner width (without borders)
+    const boxWidth = TERMINAL_WIDTH - 2;
     
     const borderedLine = (text: string, color: string = ''): string => {
       const centeredText = this.centerText(text, boxWidth);
@@ -115,8 +116,9 @@ export abstract class BaseTerminalRenderer implements TerminalRenderer {
 
   protected renderMenu(content: MenuContent): string {
     const lines: string[] = [];
-    // Use TERMINAL_WIDTH - 2 for borders - 2*8 for padding = 62
-    const boxWidth = TERMINAL_WIDTH - 2 - 16;
+    // Use full terminal width (80 chars)
+    // Box width is inner width (without borders)
+    const boxWidth = TERMINAL_WIDTH - 2;
     
     const borderedLine = (text: string, color: string = ''): string => {
       const centeredText = this.centerText(text, boxWidth);

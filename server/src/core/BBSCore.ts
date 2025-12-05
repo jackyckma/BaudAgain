@@ -65,6 +65,12 @@ export class BBSCore {
 
     // No handler found
     this.logger.warn({ sessionId, command }, 'No handler found for command');
+    
+    // If user is authenticated, assume they are lost and show main menu hint
+    if (session.userId) {
+      return '\r\n\x1b[33mUnknown command. Type MENU to see your options.\x1b[0m\r\nCommand: ';
+    }
+    
     return 'Unknown command. Type HELP for assistance.\r\n';
   }
 

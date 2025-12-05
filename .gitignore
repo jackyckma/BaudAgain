@@ -69,6 +69,20 @@ server/test-*.db-journal
 # Legacy/incorrect database locations (should not exist)
 data/bbs.db
 data/bbs.db-journal
+data/bbs.db-shm
+data/bbs.db-wal
 
 # Keep template files
 !data/ansi/.gitkeep
+
+# Deployment artifacts
+deployment/package/
+deployment/*.tar.gz
+deploy/*.log
+backups/
+
+# Docker volumes (local development)
+.docker/
+
+# Cursor IDE
+.cursor/

@@ -190,6 +190,19 @@ export class MessageRepository {
   }
   
   /**
+   * Get count of messages posted by a user
+   */
+  getMessageCountByUser(userId: string): number {
+    const result = this.db.get<{ count: number }>(
+      `SELECT COUNT(*) as count FROM messages 
+       WHERE user_id = ? AND is_deleted = 0`,
+      [userId]
+    );
+    
+    return result?.count || 0;
+  }
+
+  /**
    * Map database row to Message
    */
   private mapToMessage(row: any): Message {

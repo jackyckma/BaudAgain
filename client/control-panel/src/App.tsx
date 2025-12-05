@@ -72,7 +72,7 @@ function App() {
 
       <div className="flex">
         {/* Sidebar Navigation */}
-        <nav className="w-64 bg-gray-800 min-h-screen border-r border-gray-700">
+        <nav className="w-64 flex-shrink-0 bg-gray-800 min-h-screen border-r border-gray-700">
           <ul className="py-4">
             <li>
               <button
@@ -128,7 +128,7 @@ function App() {
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-8 min-w-0 bg-gray-900">
           {renderPage()}
         </main>
       </div>

@@ -174,22 +174,22 @@ export class BBSDatabase {
   /**
    * Run a query that doesn't return results (INSERT, UPDATE, DELETE)
    */
-  run(sql: string, params?: any[]): Database.RunResult {
-    return this.db.prepare(sql).run(params);
+  run(sql: string, params: any[] = []): Database.RunResult {
+    return this.db.prepare(sql).run(...params);
   }
 
   /**
    * Get a single row
    */
-  get<T = any>(sql: string, params?: any[]): T | undefined {
-    return this.db.prepare(sql).get(params) as T | undefined;
+  get<T = any>(sql: string, params: any[] = []): T | undefined {
+    return this.db.prepare(sql).get(...params) as T | undefined;
   }
 
   /**
    * Get all rows
    */
-  all<T = any>(sql: string, params?: any[]): T[] {
-    return this.db.prepare(sql).all(params) as T[];
+  all<T = any>(sql: string, params: any[] = []): T[] {
+    return this.db.prepare(sql).all(...params) as T[];
   }
 
   /**
