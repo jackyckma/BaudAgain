@@ -7,10 +7,10 @@
 
 ## 🌐 Live Demo
 
-**Try it now:** [http://baudagain-demo.ai-transformation.org:8080](http://baudagain-demo.ai-transformation.org:8080)
+**Try it now:** [https://baudagain.heterodox.live](https://baudagain.heterodox.live)
 
 - **Terminal Client:** Experience the retro BBS interface
-- **Control Panel:** [http://baudagain-demo.ai-transformation.org:8080/control-panel](http://baudagain-demo.ai-transformation.org:8080/control-panel)
+- **Control Panel:** [https://baudagain.heterodox.live/control-panel](https://baudagain.heterodox.live/control-panel)
 
 **Demo Credentials:**
 - Sysop: `sysop` / `demo123`
