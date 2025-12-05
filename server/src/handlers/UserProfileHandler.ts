@@ -26,23 +26,19 @@ export class UserProfileHandler implements CommandHandler {
   async handle(command: string, session: Session): Promise<string> {
     try {
       // Ensure we have user ID
-      if (!session.userId) {
+      const userId = session.userId;
+      if (!userId) {
         return 'Error: User not authenticated.\r\n';
       }
 
-      // Fetch user details
-      const userId = session.userId;
-      if (!userId) {
-        return 'Error: User ID not found.\r\n';
-      }
-      
-      const user = await this.deps.userService.getUserById(userId);
+      // Fetch user details  
+      const user = await this.deps.userService!.getUserById(userId);
       if (!user) {
         return 'Error: User profile not found.\r\n';
       }
 
       // Get stats
-      const messageCount = this.deps.messageRepository.getMessageCountByUser(userId);
+      const messageCount = this.deps.messageRepository!.getMessageCountByUser(userId);
       const artCount = this.deps.artGalleryRepository.getArtPieceCountByUser(userId);
 
       return this.renderProfile(user, messageCount, artCount);
