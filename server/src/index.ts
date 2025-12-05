@@ -263,6 +263,19 @@ await server.register(fastifyStatic, {
 });
 server.log.info(`Serving control panel from ${controlPanelPath}`);
 
+// Redirect /control-panel to /control-panel/ and serve index.html for SPA routes
+server.get('/control-panel', async (_request, reply) => {
+  return reply.redirect('/control-panel/');
+});
+
+// Handle SPA routing - serve index.html for any unmatched control-panel routes
+server.setNotFoundHandler(async (request, reply) => {
+  if (request.url.startsWith('/control-panel')) {
+    return reply.sendFile('index.html', controlPanelPath);
+  }
+  return reply.status(404).send({ error: 'Not Found', message: `Route ${request.method}:${request.url} not found`, statusCode: 404 });
+});
+
 // Register rate limiting
 await server.register(rateLimit, {
   global: true,
